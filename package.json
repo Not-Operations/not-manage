@@ -10,6 +10,7 @@
   },
   "files": [
     "bin",
+    "src",
     "README.md"
   ],
   "keywords": [
@@ -25,6 +26,9 @@
   "scripts": {
     "dev": "node bin/clio-manage.js",
     "start": "node bin/clio-manage.js"
+  },
+  "dependencies": {
+    "keytar": "^7.9.0"
   },
   "engines": {
     "node": ">=20"
