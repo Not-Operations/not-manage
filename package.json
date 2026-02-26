@@ -1,0 +1,32 @@
+{
+  "name": "@notoperations/clio-manage-cli",
+  "version": "0.1.0",
+  "description": "Local-first CLI for Clio Manage integrations",
+  "license": "MIT",
+  "private": false,
+  "type": "commonjs",
+  "bin": {
+    "clio-manage": "bin/clio-manage.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "keywords": [
+    "clio",
+    "clio-manage",
+    "legal",
+    "law-firm",
+    "case-management",
+    "oauth2",
+    "mcp",
+    "cli"
+  ],
+  "scripts": {
+    "dev": "node bin/clio-manage.js",
+    "start": "node bin/clio-manage.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
