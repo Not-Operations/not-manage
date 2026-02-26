@@ -45,7 +45,7 @@ function printSetupLinks(redirectUri) {
   console.log(`- Add this redirect URI in your Clio app: ${redirectUri}`);
 }
 
-async function authSetup() {
+async function authSetup(options = {}) {
   console.log("Configure local Clio app credentials (stored in OS keychain).");
   console.log("Region options: us, ca, eu, au");
 
@@ -79,8 +79,11 @@ async function authSetup() {
   console.log("Saved credentials to secure keychain.");
   console.log(`Region: ${saved.region} (${REGIONS[saved.region].label})`);
   printSetupLinks(saved.redirectUri);
-  console.log("");
-  console.log("Next step: run `clio-manage auth login`");
+
+  if (!options.skipNextStepHint) {
+    console.log("");
+    console.log("Next step: run `clio-manage auth login`");
+  }
 }
 
 async function authLogin() {
@@ -198,10 +201,18 @@ async function whoAmI(options = {}) {
   console.log(`ID: ${user.id}`);
 }
 
+async function setupWizard() {
+  await authSetup({ skipNextStepHint: true });
+  console.log("");
+  console.log("Continuing with OAuth login...");
+  await authLogin();
+}
+
 module.exports = {
   authLogin,
   authRevoke,
   authSetup,
   authStatus,
+  setupWizard,
   whoAmI,
 };

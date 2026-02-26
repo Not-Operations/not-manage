@@ -17,6 +17,7 @@ npm install
 
 ```bash
 node bin/clio-manage.js --help
+node bin/clio-manage.js setup
 node bin/clio-manage.js auth setup
 node bin/clio-manage.js auth login
 node bin/clio-manage.js auth status
@@ -35,12 +36,14 @@ node bin/clio-manage.js auth revoke
 1. Create Clio app credentials in your region:
    - https://docs.developers.clio.com/api-docs/clio-manage/applications/
 2. Add redirect URI in your Clio app (default): `http://127.0.0.1:53123/callback`
-3. Run `clio-manage auth setup` and enter:
+3. Run `clio-manage setup` (recommended) and enter:
    - region: `us`, `ca`, `eu`, or `au`
    - `client_id`
    - `client_secret`
    - redirect URI
-4. Run `clio-manage auth login` to connect.
+4. The wizard continues directly to OAuth login.
+
+If you want setup-only mode, use `clio-manage auth setup` and run `clio-manage auth login` later.
 
 ## Env vars (optional)
 

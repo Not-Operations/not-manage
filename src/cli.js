@@ -1,4 +1,11 @@
-const { authLogin, authRevoke, authSetup, authStatus, whoAmI } = require("./commands-auth");
+const {
+  authLogin,
+  authRevoke,
+  authSetup,
+  authStatus,
+  setupWizard,
+  whoAmI,
+} = require("./commands-auth");
 const { version } = require("../package.json");
 
 function hasFlag(args, ...flags) {
@@ -12,6 +19,7 @@ function printHelp() {
   console.log("  clio-manage <command> [options]");
   console.log("");
   console.log("Commands:");
+  console.log("  setup              Run guided setup and OAuth login");
   console.log("  auth setup         Configure client credentials in OS keychain");
   console.log("  auth login         Run local OAuth login flow");
   console.log("  auth status        Show auth status and connected user");
@@ -44,7 +52,7 @@ async function run(args) {
   const sub = args[1];
 
   if (command === "setup") {
-    await authSetup();
+    await setupWizard();
     return;
   }
 
