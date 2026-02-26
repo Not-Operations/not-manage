@@ -6,10 +6,45 @@ const {
   setupWizard,
   whoAmI,
 } = require("./commands-auth");
+const { mattersList } = require("./commands-matters");
 const { version } = require("../package.json");
 
 function hasFlag(args, ...flags) {
   return flags.some((flag) => args.includes(flag));
+}
+
+function parseOptions(args) {
+  const parsed = {};
+  const positional = [];
+
+  for (let i = 0; i < args.length; i += 1) {
+    const token = args[i];
+
+    if (!token.startsWith("--")) {
+      positional.push(token);
+      continue;
+    }
+
+    const inlineSplit = token.slice(2).split("=");
+    const key = inlineSplit[0];
+    const inlineValue = inlineSplit.length > 1 ? inlineSplit.slice(1).join("=") : null;
+
+    if (inlineValue !== null) {
+      parsed[key] = inlineValue;
+      continue;
+    }
+
+    const next = args[i + 1];
+    if (next && !next.startsWith("--")) {
+      parsed[key] = next;
+      i += 1;
+      continue;
+    }
+
+    parsed[key] = true;
+  }
+
+  return { parsed, positional };
 }
 
 function printHelp() {
@@ -24,6 +59,7 @@ function printHelp() {
   console.log("  auth login         Run local OAuth login flow");
   console.log("  auth status        Show auth status and connected user");
   console.log("  auth revoke        Revoke token and clear local token storage");
+  console.log("  matters list       List matters with filters and pagination");
   console.log("  whoami             Call /api/v4/users/who_am_i");
   console.log("");
   console.log("Options:");
@@ -50,6 +86,8 @@ async function run(args) {
   const json = hasFlag(args, "--json");
   const command = args[0];
   const sub = args[1];
+  const optionTokens = args.slice(2);
+  const optionValues = parseOptions(optionTokens).parsed;
 
   if (command === "setup") {
     await setupWizard();
@@ -78,6 +116,20 @@ async function run(args) {
 
   if (command === "whoami") {
     await whoAmI({ json });
+    return;
+  }
+
+  if (command === "matters" && sub === "list") {
+    await mattersList({
+      json,
+      all: Boolean(optionValues.all),
+      fields: optionValues.fields,
+      limit: optionValues.limit,
+      order: optionValues.order,
+      pageToken: optionValues["page-token"] || optionValues.page_token,
+      query: optionValues.query,
+      status: optionValues.status,
+    });
     return;
   }
 

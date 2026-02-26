@@ -66,6 +66,29 @@ function authBaseUrl(config) {
   return `https://${config.host}`;
 }
 
+function buildUrlWithQuery(baseUrl, query = {}) {
+  const url = new URL(baseUrl);
+
+  Object.entries(query).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item !== undefined && item !== null && item !== "") {
+          url.searchParams.append(key, String(item));
+        }
+      });
+      return;
+    }
+
+    url.searchParams.set(key, String(value));
+  });
+
+  return url.toString();
+}
+
 function tokenUrl(config) {
   return `${authBaseUrl(config)}/oauth/token`;
 }
@@ -149,10 +172,22 @@ async function deauthorize(config, accessToken) {
   );
 }
 
+function mattersUrl(config, query = {}) {
+  return buildUrlWithQuery(`${authBaseUrl(config)}/api/v4/matters.json`, query);
+}
+
+async function fetchMattersPage(config, accessToken, query = {}, nextPageUrl = null) {
+  const url = nextPageUrl || mattersUrl(config, query);
+  return getJson(url, {
+    authorization: `Bearer ${accessToken}`,
+  });
+}
+
 module.exports = {
   authorizeUrl,
   deauthorize,
   exchangeAuthorizationCode,
+  fetchMattersPage,
   fetchWhoAmI,
   getValidAccessToken,
 };
