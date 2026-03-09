@@ -166,4 +166,10 @@ async function contactsGet(options = {}) {
 module.exports = {
   contactsGet,
   contactsList,
+  __private: {
+    buildContactQuery,
+    formatContactRow,
+    printContact,
+    printContactList,
+  },
 };

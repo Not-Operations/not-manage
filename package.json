@@ -25,7 +25,8 @@
   ],
   "scripts": {
     "dev": "node bin/clio-manage.js",
-    "start": "node bin/clio-manage.js"
+    "start": "node bin/clio-manage.js",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "keytar": "^7.9.0"

@@ -187,4 +187,10 @@ async function billsGet(options = {}) {
 module.exports = {
   billsGet,
   billsList,
+  __private: {
+    buildBillQuery,
+    formatBillRow,
+    printBill,
+    printBillList,
+  },
 };

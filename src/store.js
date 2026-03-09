@@ -46,7 +46,9 @@ function buildConfig(region, clientId, clientSecret, redirectUri, source) {
   const regionInfo = REGIONS[regionCode];
 
   if (!clientId || !clientSecret) {
-    throw new Error("Client credentials are missing. Run `clio-manage auth setup`.");
+    throw new Error(
+      "Client credentials are missing. Run `clio-manage setup` or `clio-manage auth setup`."
+    );
   }
 
   return {
@@ -139,6 +141,17 @@ async function saveConfig(configInput) {
 }
 
 async function getConfig() {
+  const config = await findConfig();
+  if (config) {
+    return config;
+  }
+
+  throw new Error(
+    "Clio app credentials are not configured. Run `clio-manage setup`."
+  );
+}
+
+async function findConfig() {
   const envConfig = readEnvConfig();
   if (envConfig) {
     return envConfig;
@@ -149,9 +162,7 @@ async function getConfig() {
     return storedConfig;
   }
 
-  throw new Error(
-    "Clio app credentials are not configured. Run `clio-manage auth setup`."
-  );
+  return null;
 }
 
 function normalizeTokenSet(rawTokenSet, previousTokenSet) {
@@ -215,6 +226,7 @@ async function clearTokenSet() {
 
 module.exports = {
   clearTokenSet,
+  findConfig,
   getConfig,
   getTokenSet,
   normalizeRegion,

@@ -179,4 +179,10 @@ async function usersGet(options = {}) {
 module.exports = {
   usersGet,
   usersList,
+  __private: {
+    buildUserQuery,
+    formatUserRow,
+    printUser,
+    printUserList,
+  },
 };

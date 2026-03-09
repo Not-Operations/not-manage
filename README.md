@@ -11,8 +11,10 @@ Local-first CLI for Clio Manage integrations and AI workflows.
 
 ```bash
 npm i -g @notoperations/clio-manage-cli
-clio-manage --help
+clio-manage
 ```
+
+On first run, `clio-manage` starts a guided setup flow and opens the official Clio app creation guide so you can copy the `Client ID` and `Client Secret`.
 
 For local development:
 
@@ -27,6 +29,7 @@ node bin/clio-manage.js --help
 
 1. Create Clio app credentials in your region:
    - https://docs.developers.clio.com/api-docs/clio-manage/applications/
+   - if you do not have developer access yet: https://docs.developers.clio.com/handbook/getting-started/get-a-developer-account/
 2. Add redirect URI in your Clio app:
    - `http://127.0.0.1:53123/callback`
 3. Run setup + login:

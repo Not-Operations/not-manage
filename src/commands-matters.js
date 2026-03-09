@@ -201,4 +201,10 @@ async function mattersGet(options = {}) {
 module.exports = {
   mattersGet,
   mattersList,
+  __private: {
+    buildMatterQuery,
+    formatMatterRow,
+    printMatter,
+    printMatterList,
+  },
 };

@@ -1,5 +1,8 @@
 const crypto = require("node:crypto");
 const {
+  CLIO_APP_CREATION_GUIDE_URL,
+  CLIO_AUTHORIZATION_GUIDE_URL,
+  CLIO_DEVELOPER_ACCOUNT_GUIDE_URL,
   DEFAULT_REDIRECT_URI,
   DEFAULT_REGION,
   REGIONS,
@@ -16,6 +19,7 @@ const { waitForOAuthCallback } = require("./oauth-callback");
 const { ask, withPrompt } = require("./prompt");
 const {
   clearTokenSet,
+  findConfig,
   getConfig,
   getTokenSet,
   normalizeRegion,
@@ -38,26 +42,60 @@ function formatUserSummary(payload) {
 
 function printSetupLinks(redirectUri) {
   console.log("Clio setup links:");
-  console.log(
-    "- App creation guide: https://docs.developers.clio.com/api-docs/clio-manage/applications/"
-  );
-  console.log("- Authorization guide: https://docs.developers.clio.com/api-docs/clio-manage/authorization/");
+  console.log(`- Developer account guide: ${CLIO_DEVELOPER_ACCOUNT_GUIDE_URL}`);
+  console.log(`- App creation guide: ${CLIO_APP_CREATION_GUIDE_URL}`);
+  console.log(`- Authorization guide: ${CLIO_AUTHORIZATION_GUIDE_URL}`);
   console.log(`- Add this redirect URI in your Clio app: ${redirectUri}`);
 }
 
+function printSetupIntro(redirectUri) {
+  console.log("Clio local setup");
+  console.log("");
+  console.log("This CLI connects to Clio using your own Clio Developer Application.");
+  console.log("Before you continue, create a Clio app and copy its Client ID and Client Secret.");
+  console.log("");
+  console.log("Useful links:");
+  console.log(`- Developer account guide: ${CLIO_DEVELOPER_ACCOUNT_GUIDE_URL}`);
+  console.log(`- App creation guide: ${CLIO_APP_CREATION_GUIDE_URL}`);
+  console.log(`- OAuth guide: ${CLIO_AUTHORIZATION_GUIDE_URL}`);
+  console.log("");
+  console.log("You will need to register this redirect URI in your Clio app:");
+  console.log(`- ${redirectUri}`);
+  console.log("");
+  console.log("Region options:");
+  Object.values(REGIONS).forEach((region) => {
+    console.log(`- ${region.code}: ${region.label} (${region.host})`);
+  });
+}
+
 async function authSetup(options = {}) {
-  console.log("Configure local Clio app credentials (stored in OS keychain).");
-  console.log("Region options: us, ca, eu, au");
+  printSetupIntro(DEFAULT_REDIRECT_URI);
+  console.log("");
+
+  if (options.openGuide !== false) {
+    try {
+      await openBrowser(CLIO_APP_CREATION_GUIDE_URL);
+      console.log("Opened the Clio app creation guide in your browser.");
+      console.log("");
+    } catch (_error) {
+      console.log("Could not open the Clio app creation guide automatically.");
+      console.log(`Open this URL manually: ${CLIO_APP_CREATION_GUIDE_URL}`);
+      console.log("");
+    }
+  }
 
   const configInput = await withPrompt(async (rl) => {
     const regionRaw = await ask(rl, "Region", DEFAULT_REGION);
     const region = normalizeRegion(regionRaw);
-    const clientId = await ask(rl, "Client ID");
+    console.log(`Using ${REGIONS[region].label} (${REGIONS[region].host}).`);
+    console.log("Copy the next two values from the Clio Developer Application you just created.");
+
+    const clientId = await ask(rl, "Client ID (from your Clio developer app)");
     if (!clientId) {
       throw new Error("Client ID is required.");
     }
 
-    const clientSecret = await ask(rl, "Client Secret");
+    const clientSecret = await ask(rl, "Client Secret (from the same Clio app)");
     if (!clientSecret) {
       throw new Error("Client Secret is required.");
     }
@@ -208,11 +246,29 @@ async function setupWizard() {
   await authLogin();
 }
 
+async function maybeRunSetupOnFirstUse() {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    return false;
+  }
+
+  const config = await findConfig();
+  if (config) {
+    return false;
+  }
+
+  console.log("No Clio app credentials are configured yet.");
+  console.log("Starting guided setup...");
+  console.log("");
+  await setupWizard();
+  return true;
+}
+
 module.exports = {
   authLogin,
   authRevoke,
   authSetup,
   authStatus,
+  maybeRunSetupOnFirstUse,
   setupWizard,
   whoAmI,
 };

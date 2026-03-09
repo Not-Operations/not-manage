@@ -3,6 +3,7 @@ const {
   authRevoke,
   authSetup,
   authStatus,
+  maybeRunSetupOnFirstUse,
   setupWizard,
   whoAmI,
 } = require("./commands-auth");
@@ -77,7 +78,7 @@ function printHelp() {
   console.log("  users list         List users with filters and pagination");
   console.log("  users get          Fetch a single user by id");
   console.log("  practice-areas list List practice areas with filters and pagination");
-  console.log("  practice-areas get Fetch a single practice area by id");
+  console.log("  practice-areas get  Fetch a single practice area by id");
   console.log("  whoami             Call /api/v4/users/who_am_i");
   console.log("");
   console.log("Options:");
@@ -91,7 +92,15 @@ function printHelp() {
 }
 
 async function run(args) {
-  if (!args.length || hasFlag(args, "-h", "--help")) {
+  if (!args.length) {
+    const startedOnboarding = await maybeRunSetupOnFirstUse();
+    if (!startedOnboarding) {
+      printHelp();
+    }
+    return;
+  }
+
+  if (hasFlag(args, "-h", "--help")) {
     printHelp();
     return;
   }

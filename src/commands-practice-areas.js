@@ -151,4 +151,10 @@ async function practiceAreasGet(options = {}) {
 module.exports = {
   practiceAreasGet,
   practiceAreasList,
+  __private: {
+    buildPracticeAreaQuery,
+    formatPracticeAreaRow,
+    printPracticeArea,
+    printPracticeAreaList,
+  },
 };
