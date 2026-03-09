@@ -393,3 +393,56 @@ for (const spec of specs) {
     }
   });
 }
+
+test("practice areas list resolves matter ids through the matter detail endpoint", async () => {
+  const fetchMatterCalls = [];
+  const fetchPracticeAreaCalls = [];
+  const practiceAreaSpec = specs.find((spec) => spec.name === "practice areas");
+  const { module, restore } = loadCommandModule(practiceAreaSpec, {
+    fetchMatter: async (_config, _accessToken, id, query) => {
+      fetchMatterCalls.push({ id, query });
+      return {
+        data: {
+          id,
+          practice_area: { id: 505 },
+        },
+      };
+    },
+    fetchPracticeArea: async (_config, _accessToken, id, query) => {
+      fetchPracticeAreaCalls.push({ id, query });
+      return {
+        data: practiceAreaSpec.sample,
+      };
+    },
+    fetchPracticeAreasPage: async () => {
+      throw new Error("practice area collection fetch should not run in matter lookup mode");
+    },
+  });
+
+  try {
+    const { logs } = await captureConsole(() =>
+      module.practiceAreasList({ matterId: "303", name: "Family", limit: "5" })
+    );
+    const output = logs.join("\n");
+    assert.match(output, /Family Law/);
+    assert.match(output, /Returned 1 practice area across 1 page\./);
+    assert.deepStrictEqual(fetchMatterCalls, [
+      {
+        id: "303",
+        query: {
+          fields: "id,practice_area{id}",
+        },
+      },
+    ]);
+    assert.deepStrictEqual(fetchPracticeAreaCalls, [
+      {
+        id: 505,
+        query: {
+          fields: "id,code,name,category,created_at,updated_at",
+        },
+      },
+    ]);
+  } finally {
+    restore();
+  }
+});

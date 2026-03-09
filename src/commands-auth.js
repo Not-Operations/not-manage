@@ -12,6 +12,7 @@ const {
   deauthorize,
   exchangeAuthorizationCode,
   fetchWhoAmI,
+  fetchUser,
   getValidAccessToken,
 } = require("./clio-api");
 const { openBrowser } = require("./open-browser");
@@ -38,6 +39,32 @@ function formatUserSummary(payload) {
     "unknown";
   const email = user?.email || user?.email_address || "unknown";
   return { id, name, email };
+}
+
+async function hydrateUserSummary(config, accessToken, user) {
+  if (!user || user.email !== "unknown" || user.id === "unknown") {
+    return user;
+  }
+
+  try {
+    const detailPayload = await fetchUser(config, accessToken, user.id, {
+      fields: "id,name,first_name,last_name,email",
+    });
+    const detailedUser = formatUserSummary(detailPayload);
+    return {
+      ...user,
+      ...detailedUser,
+      email: detailedUser.email || user.email,
+    };
+  } catch (_error) {
+    return user;
+  }
+}
+
+async function fetchCurrentUserSummary(config, accessToken) {
+  const payload = await fetchWhoAmI(config, accessToken);
+  const user = await hydrateUserSummary(config, accessToken, formatUserSummary(payload));
+  return { payload, user };
 }
 
 function maskCredential(value) {
@@ -241,8 +268,7 @@ async function authLogin(options = {}) {
 
   const tokenSet = await saveTokenSet(tokenPayload);
   const accessToken = await getValidAccessToken(config, tokenSet);
-  const whoAmI = await fetchWhoAmI(config, accessToken);
-  const user = formatUserSummary(whoAmI);
+  const { user } = await fetchCurrentUserSummary(config, accessToken);
 
   console.log("");
   console.log("Clio login complete.");
@@ -262,8 +288,7 @@ async function authStatus(options = {}) {
   }
 
   const accessToken = await getValidAccessToken(config, tokenSet);
-  const whoAmI = await fetchWhoAmI(config, accessToken);
-  const user = formatUserSummary(whoAmI);
+  const { user } = await fetchCurrentUserSummary(config, accessToken);
 
   if (options.json) {
     console.log(
@@ -321,8 +346,7 @@ async function whoAmI(options = {}) {
   const config = await getConfig();
   const tokenSet = await getTokenSet();
   const accessToken = await getValidAccessToken(config, tokenSet);
-  const payload = await fetchWhoAmI(config, accessToken);
-  const user = formatUserSummary(payload);
+  const { payload, user } = await fetchCurrentUserSummary(config, accessToken);
 
   if (options.json) {
     console.log(JSON.stringify(payload, null, 2));
@@ -366,4 +390,9 @@ module.exports = {
   maybeRunSetupOnFirstUse,
   setupWizard,
   whoAmI,
+  __private: {
+    fetchCurrentUserSummary,
+    formatUserSummary,
+    hydrateUserSummary,
+  },
 };

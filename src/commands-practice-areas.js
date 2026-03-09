@@ -1,4 +1,5 @@
 const {
+  fetchMatter,
   fetchPracticeArea,
   fetchPracticeAreasPage,
   getValidAccessToken,
@@ -14,6 +15,7 @@ const {
 
 const DEFAULT_LIST_FIELDS = "id,code,name,category";
 const DEFAULT_GET_FIELDS = "id,code,name,category,created_at,updated_at";
+const MATTER_LOOKUP_FIELDS = "id,practice_area{id}";
 
 function buildPracticeAreaQuery(options) {
   return compactQuery({
@@ -21,12 +23,89 @@ function buildPracticeAreaQuery(options) {
     created_since: options.createdSince || undefined,
     fields: options.fields || DEFAULT_LIST_FIELDS,
     limit: parseLimit(options.limit),
-    matter_id: options.matterId || undefined,
     name: options.name || undefined,
     order: options.order || undefined,
     page_token: options.pageToken || undefined,
     updated_since: options.updatedSince || undefined,
   });
+}
+
+function matchesTimestampOnOrAfter(value, threshold) {
+  if (!threshold) {
+    return true;
+  }
+
+  const valueTime = Date.parse(value);
+  const thresholdTime = Date.parse(threshold);
+
+  if (Number.isNaN(valueTime) || Number.isNaN(thresholdTime)) {
+    return true;
+  }
+
+  return valueTime >= thresholdTime;
+}
+
+function practiceAreaMatchesOptions(practiceArea, options = {}) {
+  const code = String(practiceArea?.code || "");
+  const name = String(practiceArea?.name || "");
+
+  if (options.code && code.toLowerCase() !== String(options.code).toLowerCase()) {
+    return false;
+  }
+
+  if (
+    options.name &&
+    !name.toLowerCase().includes(String(options.name).trim().toLowerCase())
+  ) {
+    return false;
+  }
+
+  if (!matchesTimestampOnOrAfter(practiceArea?.created_at, options.createdSince)) {
+    return false;
+  }
+
+  if (!matchesTimestampOnOrAfter(practiceArea?.updated_at, options.updatedSince)) {
+    return false;
+  }
+
+  return true;
+}
+
+function buildSinglePageResult(data) {
+  return {
+    data,
+    firstPage: {
+      data,
+      meta: {
+        paging: {},
+        records: data.length,
+      },
+    },
+    nextPageUrl: null,
+    pagesFetched: 1,
+  };
+}
+
+async function practiceAreasListForMatter(config, accessToken, options = {}) {
+  const matterPayload = await fetchMatter(config, accessToken, options.matterId, {
+    fields: MATTER_LOOKUP_FIELDS,
+  });
+  const practiceAreaId = matterPayload?.data?.practice_area?.id;
+
+  if (!practiceAreaId) {
+    return buildSinglePageResult([]);
+  }
+
+  const payload = await fetchPracticeArea(config, accessToken, practiceAreaId, {
+    fields: options.fields || DEFAULT_GET_FIELDS,
+  });
+  const practiceArea = payload?.data;
+  const data =
+    practiceArea && practiceAreaMatchesOptions(practiceArea, options)
+      ? [practiceArea]
+      : [];
+
+  return buildSinglePageResult(data);
 }
 
 function formatPracticeAreaRow(practiceArea) {
@@ -91,14 +170,15 @@ async function getAuthContext() {
 }
 
 async function practiceAreasList(options = {}) {
-  const query = buildPracticeAreaQuery(options);
   const { config, accessToken } = await getAuthContext();
-  const result = await fetchPages(
-    (pageQuery, nextPageUrl) =>
-      fetchPracticeAreasPage(config, accessToken, pageQuery, nextPageUrl),
-    query,
-    Boolean(options.all)
-  );
+  const result = options.matterId
+    ? await practiceAreasListForMatter(config, accessToken, options)
+    : await fetchPages(
+        (pageQuery, nextPageUrl) =>
+          fetchPracticeAreasPage(config, accessToken, pageQuery, nextPageUrl),
+        buildPracticeAreaQuery(options),
+        Boolean(options.all)
+      );
 
   if (options.json) {
     if (!options.all) {
@@ -152,8 +232,11 @@ module.exports = {
   practiceAreasGet,
   practiceAreasList,
   __private: {
+    buildSinglePageResult,
     buildPracticeAreaQuery,
     formatPracticeAreaRow,
+    practiceAreaMatchesOptions,
+    practiceAreasListForMatter,
     printPracticeArea,
     printPracticeAreaList,
   },

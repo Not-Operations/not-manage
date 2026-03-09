@@ -146,12 +146,11 @@ test("buildUserQuery serializes booleans explicitly", () => {
   });
 });
 
-test("buildPracticeAreaQuery maps practice area filters", () => {
+test("buildPracticeAreaQuery maps supported practice area API filters", () => {
   const query = practiceAreas.__private.buildPracticeAreaQuery({
     code: "FAM",
     createdSince: "2026-01-01",
     limit: "10",
-    matterId: "71",
     name: "Family",
     order: "name(asc)",
     pageToken: "cursor-5",
@@ -163,7 +162,6 @@ test("buildPracticeAreaQuery maps practice area filters", () => {
     created_since: "2026-01-01",
     fields: "id,code,name,category",
     limit: 10,
-    matter_id: "71",
     name: "Family",
     order: "name(asc)",
     page_token: "cursor-5",

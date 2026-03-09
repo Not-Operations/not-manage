@@ -102,6 +102,7 @@ clio-manage users list --name "Sarah"
 clio-manage users get 123
 
 clio-manage practice-areas list --name "Family"
+clio-manage practice-areas list --matter-id 456
 clio-manage practice-areas get 45
 ```
 

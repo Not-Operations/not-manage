@@ -81,6 +81,7 @@ function loadAuthSetupTest(askImpl) {
       deauthorize: async () => {},
       exchangeAuthorizationCode: async () => ({}),
       fetchWhoAmI: async () => ({ data: { id: 1, name: "Casey Example", email: "casey@test" } }),
+      fetchUser: async () => ({ data: { id: 1, name: "Casey Example", email: "casey@test" } }),
       getValidAccessToken: async () => "access-token",
     },
     "./open-browser": {
@@ -145,6 +146,9 @@ function loadAuthModule(options = {}) {
         access_token: "new-access-token",
         expires_in: 3600,
         refresh_token: "new-refresh-token",
+      }),
+      fetchUser: async () => ({
+        data: { id: 1, name: "Casey Example", email: "casey@test" },
       }),
       fetchWhoAmI: async () => ({
         data: { id: 1, name: "Casey Example", email: "casey@test" },
@@ -625,6 +629,44 @@ test("setupWizard passes the config it just saved into authLogin", async () => {
       flow.map((entry) => entry.config),
       [savedConfig, savedConfig]
     );
+  } finally {
+    restore();
+  }
+});
+
+test("whoAmI falls back to the user detail endpoint when the summary omits email", async () => {
+  const fetchUserCalls = [];
+  const { module, restore } = loadAuthModule({
+    clioApiOverrides: {
+      fetchWhoAmI: async () => ({
+        data: { id: 55, name: "Casey Example" },
+      }),
+      fetchUser: async (_config, _accessToken, id, query) => {
+        fetchUserCalls.push({ id, query });
+        return {
+          data: {
+            id: 55,
+            first_name: "Casey",
+            last_name: "Example",
+            email: "casey@example.test",
+          },
+        };
+      },
+    },
+  });
+
+  try {
+    const { logs } = await captureConsole(() => module.whoAmI());
+    assert.ok(logs.includes("User: Casey Example"));
+    assert.ok(logs.includes("Email: casey@example.test"));
+    assert.deepStrictEqual(fetchUserCalls, [
+      {
+        id: 55,
+        query: {
+          fields: "id,name,first_name,last_name,email",
+        },
+      },
+    ]);
   } finally {
     restore();
   }
