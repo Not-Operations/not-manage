@@ -124,16 +124,19 @@ test("postinstall setup skips when config already exists", async () => {
   });
 
   try {
-    const started = await context.module.maybeRunPostinstallOnboarding({
-      env: { npm_config_global: "true" },
-      stdin: { isTTY: true },
-      stdout: { isTTY: true },
-    });
+    const { logs, result: started } = await captureConsole(() =>
+      context.module.maybeRunPostinstallOnboarding({
+        env: { npm_config_global: "true" },
+        stdin: { isTTY: true },
+        stdout: { isTTY: true },
+      })
+    );
 
     assert.equal(started, false);
     assert.equal(context.findConfigCalls, 1);
     assert.equal(context.setupCalls, 0);
     assert.deepEqual(context.promptLabels, []);
+    assert.match(logs.join("\n"), /Clio is already configured on this machine\. Skipping onboarding\./);
   } finally {
     context.restore();
   }

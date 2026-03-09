@@ -4,6 +4,7 @@ const {
   REGIONS,
 } = require("./constants");
 const { deleteSecret, getSecret, setSecret } = require("./keychain");
+const { parseLoopbackRedirectUri } = require("./redirect-uri");
 
 const ACCOUNTS = {
   region: "config:region",
@@ -27,18 +28,7 @@ function normalizeRegion(regionInput) {
 }
 
 function parseRedirectUri(redirectUri) {
-  let parsed;
-  try {
-    parsed = new URL(redirectUri);
-  } catch (_error) {
-    throw new Error("Redirect URI must be a valid URL.");
-  }
-
-  if (!["http:", "https:"].includes(parsed.protocol)) {
-    throw new Error("Redirect URI must start with http:// or https://");
-  }
-
-  return parsed.toString();
+  return parseLoopbackRedirectUri(redirectUri).toString();
 }
 
 function buildConfig(region, clientId, clientSecret, redirectUri, source) {

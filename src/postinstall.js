@@ -53,6 +53,8 @@ async function maybeRunPostinstallOnboarding(options = {}) {
 
   const config = await findConfigFn();
   if (config) {
+    log("Clio is already configured on this machine. Skipping onboarding.");
+    log("Run `clio-manage auth status` to verify the current connection, or `clio-manage setup` to reconfigure.");
     return false;
   }
 
