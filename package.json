@@ -1,6 +1,6 @@
 {
   "name": "@notoperations/clio-manage-cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local-first CLI for Clio Manage integrations",
   "license": "MIT",
   "private": false,
