@@ -11,10 +11,26 @@ Local-first CLI for Clio Manage integrations and AI workflows.
 
 ```bash
 npm i -g @notoperations/clio-manage-cli
+```
+
+On a fresh interactive global install, the package offers guided setup immediately from `npm install`.
+If you skip that prompt, run:
+
+```bash
 clio-manage
 ```
 
-On first run, `clio-manage` starts a guided setup flow and opens the official Clio app creation guide so you can copy the `Client ID` and `Client Secret`.
+or:
+
+```bash
+clio-manage setup
+```
+
+To suppress the install-time prompt entirely:
+
+```bash
+CLIO_MANAGE_SKIP_POSTINSTALL_SETUP=1 npm i -g @notoperations/clio-manage-cli
+```
 
 For local development:
 

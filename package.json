@@ -1,6 +1,6 @@
 {
   "name": "@notoperations/clio-manage-cli",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Local-first CLI for Clio Manage integrations",
   "license": "Apache-2.0",
   "private": false,
@@ -26,6 +26,7 @@
   ],
   "scripts": {
     "dev": "node bin/clio-manage.js",
+    "postinstall": "node src/postinstall.js",
     "start": "node bin/clio-manage.js",
     "test": "node --test test/*.test.js"
   },
