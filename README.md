@@ -1,16 +1,19 @@
-# @notoperations/clio-manage-cli
+# clio-manage
 
-Local-first CLI for Clio Manage integrations and AI workflows.
+`clio-manage` is an unofficial command-line tool for Clio Manage integrations and AI workflows.
+
+This project is a terminal CLI from Not Operations. It is not a Clio product, and it is not affiliated with, endorsed by, or sponsored by Clio or Themis Solutions Inc.
 
 ## Package
 
-- npm package: `@notoperations/clio-manage-cli`
-- binary: `clio-manage`
+- npm package: `clio-manage`
+- command: `clio-manage`
+- type: terminal command-line tool
 
 ## Install
 
 ```bash
-npm i -g @notoperations/clio-manage-cli
+npm i -g clio-manage
 ```
 
 On a fresh interactive global install, the package offers guided setup immediately from `npm install`.
@@ -29,14 +32,14 @@ clio-manage setup
 To suppress the install-time prompt entirely:
 
 ```bash
-CLIO_MANAGE_SKIP_POSTINSTALL_SETUP=1 npm i -g @notoperations/clio-manage-cli
+CLIO_MANAGE_SKIP_POSTINSTALL_SETUP=1 npm i -g clio-manage
 ```
 
 For local development:
 
 ```bash
-git clone https://github.com/Not-Operations/clio-cli.git
-cd clio-cli
+git clone https://github.com/Not-Operations/clio-manage.git
+cd clio-manage
 npm install
 node bin/clio-manage.js --help
 ```
@@ -152,7 +155,7 @@ Licensed under `Apache-2.0`. See `LICENSE` and `NOTICE`.
 
 ## Trademark notice
 
-Clio is a trademark of Themis Solutions Inc. This project is independent and is not affiliated with or endorsed by Clio.
+Clio is a trademark of Themis Solutions Inc. `clio-manage` is an independent command-line tool from Not Operations and is not affiliated with, endorsed by, or sponsored by Clio or Themis Solutions Inc.
 
 ## Security
 

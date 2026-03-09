@@ -1,7 +1,7 @@
 {
-  "name": "@notoperations/clio-manage-cli",
+  "name": "clio-manage",
   "version": "0.1.7",
-  "description": "Local-first CLI for Clio Manage integrations",
+  "description": "Unofficial command-line tool for Clio Manage integrations",
   "license": "Apache-2.0",
   "private": false,
   "type": "commonjs",
@@ -17,6 +17,8 @@
   "keywords": [
     "clio",
     "clio-manage",
+    "command-line",
+    "terminal",
     "legal",
     "law-firm",
     "case-management",

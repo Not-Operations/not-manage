@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to `@notoperations/clio-manage-cli`.
+Thanks for contributing to `clio-manage`.
 
 ## Rights and licensing
 
