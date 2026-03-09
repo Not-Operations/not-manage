@@ -52,10 +52,46 @@ function loadPostinstall(options = {}) {
   };
 }
 
-test("postinstall gating only runs for interactive global installs", () => {
+test("postinstall gating only shows notices for global non-CI installs", () => {
   const { module, restore } = loadPostinstall();
 
   try {
+    assert.equal(
+      module.shouldShowPostinstallNotice({
+        env: { npm_config_global: "true" },
+        stdin: { isTTY: true },
+        stdout: { isTTY: true },
+      }),
+      true
+    );
+
+    assert.equal(
+      module.shouldShowPostinstallNotice({
+        env: { npm_config_global: "false" },
+        stdin: { isTTY: true },
+        stdout: { isTTY: true },
+      }),
+      false
+    );
+
+    assert.equal(
+      module.shouldShowPostinstallNotice({
+        env: { npm_config_global: "true", CI: "1" },
+        stdin: { isTTY: true },
+        stdout: { isTTY: true },
+      }),
+      false
+    );
+
+    assert.equal(
+      module.shouldShowPostinstallNotice({
+        env: { npm_config_global: "true", CLIO_MANAGE_SKIP_POSTINSTALL_SETUP: "1" },
+        stdin: { isTTY: true },
+        stdout: { isTTY: true },
+      }),
+      false
+    );
+
     assert.equal(
       module.shouldRunPostinstallOnboarding({
         env: { npm_config_global: "true" },
@@ -67,26 +103,8 @@ test("postinstall gating only runs for interactive global installs", () => {
 
     assert.equal(
       module.shouldRunPostinstallOnboarding({
-        env: { npm_config_global: "false" },
-        stdin: { isTTY: true },
-        stdout: { isTTY: true },
-      }),
-      false
-    );
-
-    assert.equal(
-      module.shouldRunPostinstallOnboarding({
-        env: { npm_config_global: "true", CI: "1" },
-        stdin: { isTTY: true },
-        stdout: { isTTY: true },
-      }),
-      false
-    );
-
-    assert.equal(
-      module.shouldRunPostinstallOnboarding({
-        env: { npm_config_global: "true", CLIO_MANAGE_SKIP_POSTINSTALL_SETUP: "1" },
-        stdin: { isTTY: true },
+        env: { npm_config_global: "true" },
+        stdin: { isTTY: false },
         stdout: { isTTY: true },
       }),
       false
@@ -136,7 +154,30 @@ test("postinstall setup skips when config already exists", async () => {
     assert.equal(context.findConfigCalls, 1);
     assert.equal(context.setupCalls, 0);
     assert.deepEqual(context.promptLabels, []);
-    assert.match(logs.join("\n"), /Clio is already configured on this machine\. Skipping onboarding\./);
+    assert.match(logs.join("\n"), /Welcome back\. Clio is already configured on this machine\./);
+  } finally {
+    context.restore();
+  }
+});
+
+test("postinstall shows a reinstall notice even when npm is non-interactive", async () => {
+  const context = loadPostinstall({
+    findConfigImpl: async () => ({ source: "keychain" }),
+  });
+
+  try {
+    const { logs, result: started } = await captureConsole(() =>
+      context.module.maybeRunPostinstallOnboarding({
+        env: { npm_config_global: "true" },
+        stdin: { isTTY: false },
+        stdout: { isTTY: false },
+      })
+    );
+
+    assert.equal(started, false);
+    assert.equal(context.findConfigCalls, 1);
+    assert.equal(context.setupCalls, 0);
+    assert.match(logs.join("\n"), /Welcome back\. Clio is already configured on this machine\./);
   } finally {
     context.restore();
   }
@@ -161,6 +202,28 @@ test("postinstall setup can be skipped from the prompt", async () => {
     assert.match(logs.join("\n"), /Skipping setup for now/);
   } finally {
     restore();
+  }
+});
+
+test("postinstall shows a setup reminder on a fresh non-interactive install", async () => {
+  const context = loadPostinstall();
+
+  try {
+    const { logs, result } = await captureConsole(() =>
+      context.module.maybeRunPostinstallOnboarding({
+        env: { npm_config_global: "true" },
+        stdin: { isTTY: false },
+        stdout: { isTTY: false },
+      })
+    );
+
+    assert.equal(result, false);
+    assert.equal(context.findConfigCalls, 1);
+    assert.equal(context.setupCalls, 0);
+    assert.match(logs.join("\n"), /clio-manage is installed\./);
+    assert.match(logs.join("\n"), /Run `clio-manage setup` whenever you are ready\./);
+  } finally {
+    context.restore();
   }
 });
 

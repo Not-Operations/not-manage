@@ -2,10 +2,8 @@ const { setupWizard } = require("./commands-auth");
 const { ask, withPrompt } = require("./prompt");
 const { findConfig } = require("./store");
 
-function shouldRunPostinstallOnboarding(options = {}) {
+function shouldShowPostinstallNotice(options = {}) {
   const env = options.env || process.env;
-  const stdin = options.stdin || process.stdin;
-  const stdout = options.stdout || process.stdout;
 
   if (env.CLIO_MANAGE_SKIP_POSTINSTALL_SETUP === "1") {
     return false;
@@ -16,6 +14,17 @@ function shouldRunPostinstallOnboarding(options = {}) {
   }
 
   if (env.npm_config_global !== "true") {
+    return false;
+  }
+
+  return true;
+}
+
+function shouldRunPostinstallOnboarding(options = {}) {
+  const stdin = options.stdin || process.stdin;
+  const stdout = options.stdout || process.stdout;
+
+  if (!shouldShowPostinstallNotice(options)) {
     return false;
   }
 
@@ -39,22 +48,37 @@ function printPostinstallIntro(log = console.log) {
   log("");
 }
 
+function printPostinstallInstalledNotice(log = console.log) {
+  log("");
+  log("clio-manage is installed.");
+  log("Run `clio-manage setup` whenever you are ready.");
+}
+
+function printPostinstallWelcomeBack(log = console.log) {
+  log("");
+  log("Welcome back. Clio is already configured on this machine.");
+  log("Run `clio-manage auth status` to verify the current connection, or `clio-manage setup` to reconfigure.");
+}
+
 async function maybeRunPostinstallOnboarding(options = {}) {
-  const env = options.env || process.env;
   const log = options.log || console.log;
   const findConfigFn = options.findConfig || findConfig;
   const setupWizardFn = options.setupWizard || setupWizard;
   const withPromptFn = options.withPrompt || withPrompt;
   const askFn = options.ask || ask;
 
-  if (!shouldRunPostinstallOnboarding(options)) {
+  if (!shouldShowPostinstallNotice(options)) {
     return false;
   }
 
   const config = await findConfigFn();
   if (config) {
-    log("Clio is already configured on this machine. Skipping onboarding.");
-    log("Run `clio-manage auth status` to verify the current connection, or `clio-manage setup` to reconfigure.");
+    printPostinstallWelcomeBack(log);
+    return false;
+  }
+
+  if (!shouldRunPostinstallOnboarding(options)) {
+    printPostinstallInstalledNotice(log);
     return false;
   }
 
@@ -94,5 +118,6 @@ if (require.main === module) {
 module.exports = {
   main,
   maybeRunPostinstallOnboarding,
+  shouldShowPostinstallNotice,
   shouldRunPostinstallOnboarding,
 };
