@@ -55,6 +55,5 @@ jobs:
         run: npm run pack:check
 
       - name: Publish to npm with provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
+
