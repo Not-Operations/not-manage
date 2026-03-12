@@ -21,13 +21,13 @@ jobs:
     environment: npm
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          cache: npm
           node-version: 20
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Verify release tag matches package version
@@ -56,4 +56,3 @@ jobs:
 
       - name: Publish to npm with provenance
         run: npm publish --provenance --access public
-
