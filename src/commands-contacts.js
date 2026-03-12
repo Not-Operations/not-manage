@@ -13,6 +13,7 @@ const {
   printKeyValueRows,
   readContactName,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
   "id,name,first_name,last_name,type,is_client,primary_email_address,primary_phone_number";
@@ -116,18 +117,20 @@ async function contactsList(options = {}) {
   );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "contact");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "contact");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -137,7 +140,7 @@ async function contactsList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatContactRow);
+  const rows = maybeRedactData(result.data, options, "contact").map(formatContactRow);
   printContactList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(
@@ -154,13 +157,14 @@ async function contactsGet(options = {}) {
   const payload = await fetchContact(config, accessToken, options.id, {
     fields: options.fields || DEFAULT_GET_FIELDS,
   });
+  const redactedPayload = maybeRedactPayload(payload, options, "contact");
 
   if (options.json) {
-    console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(redactedPayload, null, 2));
     return;
   }
 
-  printContact(payload?.data || {});
+  printContact(redactedPayload?.data || {});
 }
 
 module.exports = {

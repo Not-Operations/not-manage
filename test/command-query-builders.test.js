@@ -57,7 +57,7 @@ test("buildBillQuery maps bill filters", () => {
     pageToken: "cursor-2",
     query: "Invoice",
     state: "awaiting_payment",
-    status: "open",
+    status: "overdue",
     type: "Invoice",
     updatedSince: "2026-03-05",
   });
@@ -78,10 +78,31 @@ test("buildBillQuery maps bill filters", () => {
     page_token: "cursor-2",
     query: "Invoice",
     state: "awaiting_payment",
-    status: "open",
+    status: "overdue",
     type: "Invoice",
     updated_since: "2026-03-05",
   });
+});
+
+test("buildBillQuery maps unpaid bill status to awaiting_payment state", () => {
+  const query = bills.__private.buildBillQuery({
+    limit: "25",
+    status: "unpaid",
+  });
+
+  assert.deepStrictEqual(query, {
+    fields:
+      "id,number,state,type,issued_at,due_at,balance,total,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+    limit: 25,
+    state: "awaiting_payment",
+  });
+});
+
+test("buildBillQuery rejects unsupported bill statuses", () => {
+  assert.throws(
+    () => bills.__private.buildBillQuery({ status: "open" }),
+    /Use `all`, `overdue`, or `unpaid`/
+  );
 });
 
 test("buildActivityQuery maps activity filters", () => {

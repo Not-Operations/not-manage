@@ -434,6 +434,51 @@ for (const spec of specs) {
   });
 }
 
+test("bills list normalizes unpaid status to awaiting_payment state", async () => {
+  const billSpec = specs.find((spec) => spec.name === "bills");
+  const fetchCalls = [];
+  const { module, restore } = loadCommandModule(billSpec, {
+    fetchBillsPage: async (_config, _accessToken, query) => {
+      fetchCalls.push(query);
+      return buildPage([]);
+    },
+  });
+
+  try {
+    await captureConsole(() =>
+      module.billsList({ status: "unpaid", limit: "5", json: true })
+    );
+    assert.deepStrictEqual(fetchCalls, [
+      {
+        fields:
+          "id,number,state,type,issued_at,due_at,balance,total,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+        limit: 5,
+        state: "awaiting_payment",
+      },
+    ]);
+  } finally {
+    restore();
+  }
+});
+
+test("bills list rejects unsupported bill statuses before calling Clio", async () => {
+  const billSpec = specs.find((spec) => spec.name === "bills");
+  const { module, restore } = loadCommandModule(billSpec, {
+    fetchBillsPage: async () => {
+      throw new Error("fetchBillsPage should not be called for invalid statuses");
+    },
+  });
+
+  try {
+    await assert.rejects(
+      () => module.billsList({ status: "open", limit: "5" }),
+      /Use `all`, `overdue`, or `unpaid`/
+    );
+  } finally {
+    restore();
+  }
+});
+
 test("practice areas list resolves matter ids through the matter detail endpoint", async () => {
   const fetchMatterCalls = [];
   const fetchPracticeAreaCalls = [];
@@ -592,3 +637,157 @@ for (const spec of billableSpecs) {
     }
   });
 }
+
+test("contacts list redacts contact PII in table output", async () => {
+  const contactSpec = specs.find((spec) => spec.name === "contacts");
+  const { module, restore } = loadCommandModule(contactSpec, {
+    fetchContactsPage: async () => buildPage([contactSpec.sample]),
+  });
+
+  try {
+    const { logs } = await captureConsole(() =>
+      module.contactsList({ ...contactSpec.listOptions, redacted: true })
+    );
+    const output = logs.join("\n");
+    assert.match(output, /\[REDACTED_NAME\]/);
+    assert.match(output, /\[REDACTED_EMAIL\]/);
+    assert.match(output, /\[REDACTED_PHONE\]/);
+    assert.doesNotMatch(output, /Acme LLC/);
+    assert.doesNotMatch(output, /billing@acme\.test/);
+    assert.doesNotMatch(output, /555-0101/);
+  } finally {
+    restore();
+  }
+});
+
+test("contacts get redacts structured PII in JSON output", async () => {
+  const contactSpec = specs.find((spec) => spec.name === "contacts");
+  const payload = { data: contactSpec.sample };
+  const { module, restore } = loadCommandModule(contactSpec, {
+    fetchContact: async () => payload,
+  });
+
+  try {
+    const { logs } = await captureConsole(() =>
+      module.contactsGet({ id: contactSpec.getId, json: true, redacted: true })
+    );
+    const output = JSON.parse(logs.join("\n"));
+    assert.equal(output.data.name, "[REDACTED_NAME]");
+    assert.equal(output.data.primary_email_address, "[REDACTED_EMAIL]");
+    assert.equal(output.data.primary_phone_number, "[REDACTED_PHONE]");
+    assert.equal(output.data.title, "CEO");
+  } finally {
+    restore();
+  }
+});
+
+test("matters get redacts client PII inside free text but keeps staff visible", async () => {
+  const matterSpec = specs.find((spec) => spec.name === "matters");
+  const payload = {
+    data: {
+      ...matterSpec.sample,
+      client: {
+        name: "Acme LLC",
+      },
+      description:
+        "Call Acme LLC at 415-555-1212 and billing@acme.test. Dana Doyle approved it.",
+    },
+  };
+  const { module, restore } = loadCommandModule(matterSpec, {
+    fetchMatter: async () => payload,
+  });
+
+  try {
+    const { logs } = await captureConsole(() =>
+      module.mattersGet({ id: matterSpec.getId, redacted: true })
+    );
+    const output = logs.join("\n");
+    assert.match(output, /\[REDACTED_NAME\]/);
+    assert.match(output, /\[REDACTED_PHONE\]/);
+    assert.match(output, /\[REDACTED_EMAIL\]/);
+    assert.match(output, /Dana Doyle/);
+    assert.doesNotMatch(output, /Acme LLC/);
+    assert.doesNotMatch(output, /415-555-1212/);
+    assert.doesNotMatch(output, /billing@acme\.test/);
+  } finally {
+    restore();
+  }
+});
+
+test("activities get redacts note PII but keeps user details visible", async () => {
+  const activitySpec = specs.find((spec) => spec.name === "activities");
+  const payload = {
+    data: {
+      ...activitySpec.sample,
+      note: "Email Acme LLC at billing@acme.test or 415-555-1212.",
+      matter: {
+        display_number: "MAT-11",
+      },
+      client: {
+        name: "Acme LLC",
+      },
+    },
+  };
+  const { module, restore } = loadCommandModule(activitySpec, {
+    fetchActivity: async () => payload,
+  });
+
+  try {
+    const { logs } = await captureConsole(() =>
+      module.activitiesGet({ id: activitySpec.getId, redacted: true })
+    );
+    const output = logs.join("\n");
+    assert.match(output, /User                 : Dana Doyle/);
+    assert.match(output, /\[REDACTED_NAME\]/);
+    assert.match(output, /\[REDACTED_EMAIL\]/);
+    assert.match(output, /\[REDACTED_PHONE\]/);
+    assert.doesNotMatch(output, /Acme LLC/);
+  } finally {
+    restore();
+  }
+});
+
+test("billable clients list redacts client names in table output", async () => {
+  const billableClientSpec = billableSpecs.find((spec) => spec.name === "billable clients");
+  const { module, restore } = loadWithMocks(path.join(ROOT, billableClientSpec.moduleFile), {
+    "./clio-api": {
+      getValidAccessToken: async () => "fresh-token",
+      fetchBillableClientsPage: async () => buildPage([billableClientSpec.sample]),
+    },
+    "./store": {
+      getConfig: async () => BASE_CONFIG,
+      getTokenSet: async () => BASE_TOKEN_SET,
+    },
+  });
+
+  try {
+    const { logs } = await captureConsole(() =>
+      module.billableClientsList({ ...billableClientSpec.listOptions, redacted: true })
+    );
+    const output = logs.join("\n");
+    assert.match(output, /\[REDACTED_NAME\]/);
+    assert.doesNotMatch(output, /Acme LLC/);
+  } finally {
+    restore();
+  }
+});
+
+test("users get remains unchanged in redacted mode", async () => {
+  const userSpec = specs.find((spec) => spec.name === "users");
+  const payload = { data: userSpec.sample };
+  const { module, restore } = loadCommandModule(userSpec, {
+    fetchUser: async () => payload,
+  });
+
+  try {
+    const { logs } = await captureConsole(() =>
+      module.usersGet({ id: userSpec.getId, redacted: true })
+    );
+    const output = logs.join("\n");
+    assert.match(output, /Dana Doyle/);
+    assert.match(output, /dana@example\.com/);
+    assert.doesNotMatch(output, /\[REDACTED_/);
+  } finally {
+    restore();
+  }
+});

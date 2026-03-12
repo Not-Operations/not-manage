@@ -13,6 +13,7 @@ const {
   printKeyValueRows,
   readUserName,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
   "id,name,first_name,last_name,email,enabled,roles,subscription_type";
@@ -129,18 +130,20 @@ async function usersList(options = {}) {
   );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "user");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "user");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -150,7 +153,7 @@ async function usersList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatUserRow);
+  const rows = maybeRedactData(result.data, options, "user").map(formatUserRow);
   printUserList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(
@@ -167,13 +170,14 @@ async function usersGet(options = {}) {
   const payload = await fetchUser(config, accessToken, options.id, {
     fields: options.fields || DEFAULT_GET_FIELDS,
   });
+  const redactedPayload = maybeRedactPayload(payload, options, "user");
 
   if (options.json) {
-    console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(redactedPayload, null, 2));
     return;
   }
 
-  printUser(payload?.data || {});
+  printUser(redactedPayload?.data || {});
 }
 
 module.exports = {

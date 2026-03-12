@@ -14,13 +14,63 @@ const {
   readContactName,
   readMatterLabel,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
   "id,number,state,type,issued_at,due_at,balance,total,client{id,name,first_name,last_name},matters{id,display_number,number,description}";
 const DEFAULT_GET_FIELDS =
   "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}";
+const VALID_BILL_STATUSES = new Set(["all", "overdue"]);
+
+function normalizeBillStatusFilters(options = {}) {
+  const state =
+    typeof options.state === "string"
+      ? options.state.trim() || undefined
+      : options.state || undefined;
+
+  if (options.status === undefined || options.status === null || options.status === "") {
+    return { state, status: undefined };
+  }
+
+  if (typeof options.status !== "string") {
+    throw new Error(
+      "Invalid value for --status on bills/invoices. Use `all`, `overdue`, or `unpaid`."
+    );
+  }
+
+  const status = options.status.trim().toLowerCase();
+
+  if (!status) {
+    throw new Error(
+      "Invalid value for --status on bills/invoices. Use `all`, `overdue`, or `unpaid`."
+    );
+  }
+
+  if (status === "unpaid") {
+    if (state && state !== "awaiting_payment") {
+      throw new Error(
+        "`--status unpaid` conflicts with `--state`. Use `--state awaiting_payment` or remove one of the filters."
+      );
+    }
+
+    return {
+      state: state || "awaiting_payment",
+      status: undefined,
+    };
+  }
+
+  if (!VALID_BILL_STATUSES.has(status)) {
+    throw new Error(
+      "Invalid value for --status on bills/invoices. Use `all`, `overdue`, or `unpaid`."
+    );
+  }
+
+  return { state, status };
+}
 
 function buildBillQuery(options) {
+  const filters = normalizeBillStatusFilters(options);
+
   return compactQuery({
     client_id: options.clientId || undefined,
     created_since: options.createdSince || undefined,
@@ -35,8 +85,8 @@ function buildBillQuery(options) {
     overdue_only: options.overdueOnly ? true : undefined,
     page_token: options.pageToken || undefined,
     query: options.query || undefined,
-    state: options.state || undefined,
-    status: options.status || undefined,
+    state: filters.state,
+    status: filters.status,
     type: options.type || undefined,
     updated_since: options.updatedSince || undefined,
   });
@@ -137,18 +187,20 @@ async function billsList(options = {}) {
   );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "bill");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "bill");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -158,7 +210,7 @@ async function billsList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatBillRow);
+  const rows = maybeRedactData(result.data, options, "bill").map(formatBillRow);
   printBillList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(
@@ -175,13 +227,14 @@ async function billsGet(options = {}) {
   const payload = await fetchBill(config, accessToken, options.id, {
     fields: options.fields || DEFAULT_GET_FIELDS,
   });
+  const redactedPayload = maybeRedactPayload(payload, options, "bill");
 
   if (options.json) {
-    console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(redactedPayload, null, 2));
     return;
   }
 
-  printBill(payload?.data || {});
+  printBill(redactedPayload?.data || {});
 }
 
 module.exports = {
@@ -190,6 +243,7 @@ module.exports = {
   __private: {
     buildBillQuery,
     formatBillRow,
+    normalizeBillStatusFilters,
     printBill,
     printBillList,
   },

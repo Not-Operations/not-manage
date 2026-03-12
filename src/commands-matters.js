@@ -14,6 +14,7 @@ const {
   readContactName,
   readUserName,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
   "id,display_number,description,status,open_date,close_date,client{id,name,first_name,last_name}";
@@ -151,18 +152,20 @@ async function mattersList(options = {}) {
   );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "matter");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "matter");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -172,7 +175,7 @@ async function mattersList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatMatterRow);
+  const rows = maybeRedactData(result.data, options, "matter").map(formatMatterRow);
   printMatterList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(
@@ -189,13 +192,14 @@ async function mattersGet(options = {}) {
   const payload = await fetchMatter(config, accessToken, options.id, {
     fields: options.fields || DEFAULT_GET_FIELDS,
   });
+  const redactedPayload = maybeRedactPayload(payload, options, "matter");
 
   if (options.json) {
-    console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(redactedPayload, null, 2));
     return;
   }
 
-  printMatter(payload?.data || {});
+  printMatter(redactedPayload?.data || {});
 }
 
 module.exports = {

@@ -11,6 +11,7 @@ const {
   parseLimit,
   printKeyValueRows,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
   "id,name,unbilled_hours,unbilled_amount,amount_in_trust,billable_matters_count";
@@ -107,18 +108,20 @@ async function billableClientsList(options = {}) {
   );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "billable-client");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "billable-client");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -128,7 +131,9 @@ async function billableClientsList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatBillableClientRow);
+  const rows = maybeRedactData(result.data, options, "billable-client").map(
+    formatBillableClientRow
+  );
   printBillableClientList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(

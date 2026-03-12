@@ -12,6 +12,7 @@ const {
   parseLimit,
   printKeyValueRows,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS = "id,code,name,category";
 const DEFAULT_GET_FIELDS = "id,code,name,category,created_at,updated_at";
@@ -181,18 +182,20 @@ async function practiceAreasList(options = {}) {
       );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "practice-area");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "practice-area");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -202,7 +205,9 @@ async function practiceAreasList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatPracticeAreaRow);
+  const rows = maybeRedactData(result.data, options, "practice-area").map(
+    formatPracticeAreaRow
+  );
   printPracticeAreaList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(
@@ -219,13 +224,14 @@ async function practiceAreasGet(options = {}) {
   const payload = await fetchPracticeArea(config, accessToken, options.id, {
     fields: options.fields || DEFAULT_GET_FIELDS,
   });
+  const redactedPayload = maybeRedactPayload(payload, options, "practice-area");
 
   if (options.json) {
-    console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(redactedPayload, null, 2));
     return;
   }
 
-  printPracticeArea(payload?.data || {});
+  printPracticeArea(redactedPayload?.data || {});
 }
 
 module.exports = {

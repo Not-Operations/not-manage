@@ -114,7 +114,7 @@ clio-manage matters get 456
 
 clio-manage bills list --overdue-only --client-id 999
 clio-manage bills get 987
-clio-manage invoices list --status unpaid
+clio-manage invoices list --state awaiting_payment
 
 clio-manage users list --name "Sarah"
 clio-manage users get 123
@@ -125,7 +125,14 @@ clio-manage practice-areas get 45
 
 clio-manage billable-matters list --client-id 999
 clio-manage billable-clients list --start-date 2026-03-01
+clio-manage matters get 456 --redacted
 ```
+
+## Redacted mode
+
+- Add `--redacted` to supported data commands to mask client/contact PII in terminal and JSON output.
+- The first version redacts client/contact names, emails, phone numbers, and common PII patterns that appear inside free-text fields such as matter descriptions, activity notes, bill memos, and bill subjects.
+- Internal staff fields such as `user`, `responsible_attorney`, `responsible_staff`, and `originating_attorney` remain visible.
 
 ## Security model
 

@@ -15,6 +15,7 @@ const {
   readMatterLabel,
   readUserName,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
   "id,type,date,quantity,quantity_in_hours,price,total,billed,on_bill,non_billable,note,matter{id,display_number,number,description},user{id,name,first_name,last_name}";
@@ -153,18 +154,20 @@ async function activitiesList(options = {}) {
   );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "activity");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "activity");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -174,7 +177,7 @@ async function activitiesList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatActivityRow);
+  const rows = maybeRedactData(result.data, options, "activity").map(formatActivityRow);
   printActivityList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(
@@ -191,13 +194,14 @@ async function activitiesGet(options = {}) {
   const payload = await fetchActivity(config, accessToken, options.id, {
     fields: options.fields || DEFAULT_GET_FIELDS,
   });
+  const redactedPayload = maybeRedactPayload(payload, options, "activity");
 
   if (options.json) {
-    console.log(JSON.stringify(payload, null, 2));
+    console.log(JSON.stringify(redactedPayload, null, 2));
     return;
   }
 
-  printActivity(payload?.data || {});
+  printActivity(redactedPayload?.data || {});
 }
 
 module.exports = {

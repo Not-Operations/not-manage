@@ -99,6 +99,7 @@ function printHelp() {
   console.log("");
   console.log("Options:");
   console.log("  --json             Print machine-readable JSON for supported commands");
+  console.log("  --redacted         Redact client/contact PII from output for safe sharing");
   console.log("  -h, --help         Show help");
   console.log("  -v, --version      Show version");
   console.log("");
@@ -185,6 +186,7 @@ async function run(args) {
       order: optionValues.order,
       pageToken: optionValues["page-token"] || optionValues.page_token,
       query: optionValues.query,
+      redacted: Boolean(optionValues.redacted),
       startDate: optionValues["start-date"] || optionValues.start_date,
       status: optionValues.status,
       taskId: optionValues["task-id"] || optionValues.task_id,
@@ -203,6 +205,7 @@ async function run(args) {
       fields: optionValues.fields,
       id: positional[0],
       json,
+      redacted: Boolean(optionValues.redacted),
     });
     return;
   }
@@ -223,6 +226,7 @@ async function run(args) {
       order: optionValues.order,
       pageToken: optionValues["page-token"] || optionValues.page_token,
       query: optionValues.query,
+      redacted: Boolean(optionValues.redacted),
       type: optionValues.type,
       updatedSince: optionValues["updated-since"] || optionValues.updated_since,
     });
@@ -234,6 +238,7 @@ async function run(args) {
       fields: optionValues.fields,
       id: positional[0],
       json,
+      redacted: Boolean(optionValues.redacted),
     });
     return;
   }
@@ -252,6 +257,7 @@ async function run(args) {
       pageToken: optionValues["page-token"] || optionValues.page_token,
       practiceAreaId: optionValues["practice-area-id"] || optionValues.practice_area_id,
       query: optionValues.query,
+      redacted: Boolean(optionValues.redacted),
       responsibleAttorneyId:
         optionValues["responsible-attorney-id"] || optionValues.responsible_attorney_id,
       responsibleStaffId:
@@ -267,6 +273,7 @@ async function run(args) {
       fields: optionValues.fields,
       id: positional[0],
       json,
+      redacted: Boolean(optionValues.redacted),
     });
     return;
   }
@@ -288,6 +295,7 @@ async function run(args) {
       overdueOnly: Boolean(optionValues["overdue-only"] || optionValues.overdue_only),
       pageToken: optionValues["page-token"] || optionValues.page_token,
       query: optionValues.query,
+      redacted: Boolean(optionValues.redacted),
       state: optionValues.state,
       status: optionValues.status,
       type: optionValues.type,
@@ -301,6 +309,7 @@ async function run(args) {
       fields: optionValues.fields,
       id: positional[0],
       json,
+      redacted: Boolean(optionValues.redacted),
     });
     return;
   }
@@ -324,6 +333,7 @@ async function run(args) {
         optionValues["pending-setup"] === undefined && optionValues.pending_setup === undefined
           ? undefined
           : (optionValues["pending-setup"] || optionValues.pending_setup) !== "false",
+      redacted: Boolean(optionValues.redacted),
       role: optionValues.role,
       subscriptionType:
         optionValues["subscription-type"] || optionValues.subscription_type,
@@ -337,6 +347,7 @@ async function run(args) {
       fields: optionValues.fields,
       id: positional[0],
       json,
+      redacted: Boolean(optionValues.redacted),
     });
     return;
   }
@@ -353,6 +364,7 @@ async function run(args) {
       name: optionValues.name,
       order: optionValues.order,
       pageToken: optionValues["page-token"] || optionValues.page_token,
+      redacted: Boolean(optionValues.redacted),
       updatedSince: optionValues["updated-since"] || optionValues.updated_since,
     });
     return;
@@ -363,6 +375,7 @@ async function run(args) {
       fields: optionValues.fields,
       id: positional[0],
       json,
+      redacted: Boolean(optionValues.redacted),
     });
     return;
   }
@@ -380,6 +393,7 @@ async function run(args) {
         optionValues["originating-attorney-id"] || optionValues.originating_attorney_id,
       pageToken: optionValues["page-token"] || optionValues.page_token,
       query: optionValues.query,
+      redacted: Boolean(optionValues.redacted),
       responsibleAttorneyId:
         optionValues["responsible-attorney-id"] || optionValues.responsible_attorney_id,
       startDate: optionValues["start-date"] || optionValues.start_date,
@@ -400,6 +414,7 @@ async function run(args) {
         optionValues["originating-attorney-id"] || optionValues.originating_attorney_id,
       pageToken: optionValues["page-token"] || optionValues.page_token,
       query: optionValues.query,
+      redacted: Boolean(optionValues.redacted),
       responsibleAttorneyId:
         optionValues["responsible-attorney-id"] || optionValues.responsible_attorney_id,
       startDate: optionValues["start-date"] || optionValues.start_date,

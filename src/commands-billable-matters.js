@@ -12,6 +12,7 @@ const {
   printKeyValueRows,
   readContactName,
 } = require("./resource-utils");
+const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
   "id,display_number,unbilled_hours,unbilled_amount,amount_in_trust,client{id,name,first_name,last_name}";
@@ -105,18 +106,20 @@ async function billableMattersList(options = {}) {
   );
 
   if (options.json) {
+    const firstPage = maybeRedactPayload(result.firstPage, options, "billable-matter");
     if (!options.all) {
-      console.log(JSON.stringify(result.firstPage, null, 2));
+      console.log(JSON.stringify(firstPage, null, 2));
       return;
     }
 
+    const data = maybeRedactData(result.data, options, "billable-matter");
     console.log(
       JSON.stringify(
         {
-          data: result.data,
+          data,
           meta: {
             pages_fetched: result.pagesFetched,
-            returned_count: result.data.length,
+            returned_count: data.length,
           },
         },
         null,
@@ -126,7 +129,9 @@ async function billableMattersList(options = {}) {
     return;
   }
 
-  const rows = result.data.map(formatBillableMatterRow);
+  const rows = maybeRedactData(result.data, options, "billable-matter").map(
+    formatBillableMatterRow
+  );
   printBillableMatterList(rows, { all: Boolean(options.all), nextPageUrl: result.nextPageUrl });
   console.log("");
   console.log(
