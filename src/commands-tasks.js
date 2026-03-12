@@ -11,16 +11,15 @@ const {
   formatBoolean,
   parseLimit,
   printKeyValueRows,
-  readContactName,
   readMatterLabel,
   readUserName,
 } = require("./resource-utils");
 const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
-  "id,name,status,priority,due_at,complete,matter{id,display_number,number,description},contact{id,name,first_name,last_name},assignee{id,name,first_name,last_name},task_type{id,name}";
+  "id,name,status,priority,due_at,matter{id,display_number,number,description},assignee{id,name},task_type{id,name}";
 const DEFAULT_GET_FIELDS =
-  "id,name,description,status,priority,due_at,complete,created_at,updated_at,matter{id,display_number,number,description},contact{id,name,first_name,last_name,primary_email_address,primary_phone_number},assignee{id,name,first_name,last_name,email},assigner{id,name,first_name,last_name,email},responsible_attorney{id,name,first_name,last_name,email},task_type{id,name},parent{id,identifier}";
+  "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}";
 
 function readTaskStatus(status) {
   if (!status) {
@@ -32,6 +31,18 @@ function readTaskStatus(status) {
   }
 
   return status.name || status.value || status.state || "-";
+}
+
+function readTaskComplete(task) {
+  if (typeof task?.complete === "boolean") {
+    return task.complete;
+  }
+
+  if (typeof task?.status === "string") {
+    return task.status.toLowerCase() === "complete";
+  }
+
+  return undefined;
 }
 
 function buildTaskQuery(options) {
@@ -111,14 +122,11 @@ function printTask(task) {
     ["Status", readTaskStatus(task.status)],
     ["Priority", task.priority],
     ["Due", task.due_at],
-    ["Complete", formatBoolean(task.complete)],
-    ["Client", readContactName(task.contact)],
+    ["Complete", formatBoolean(readTaskComplete(task))],
     ["Matter", readMatterLabel(task.matter)],
     ["Assignee", readUserName(task.assignee)],
     ["Assigner", readUserName(task.assigner)],
-    ["Responsible Attorney", readUserName(task.responsible_attorney)],
     ["Task Type", task.task_type?.name],
-    ["Parent", task.parent?.identifier || task.parent?.id],
     ["Created", task.created_at],
     ["Updated", task.updated_at],
   ]);
@@ -197,6 +205,7 @@ module.exports = {
   __private: {
     buildTaskQuery,
     formatTaskRow,
+    readTaskComplete,
     printTask,
     printTaskList,
     readTaskStatus,
