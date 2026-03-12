@@ -702,6 +702,9 @@ test("cli prints help when no args are provided and onboarding is not needed", a
 
 test("authSetup opens the selected regional developer portal only after Enter", async () => {
   const authHarness = loadAuthSetupTest((label, fallback) => {
+    if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
+      return "yes";
+    }
     if (label === "Region") {
       return "ca";
     }
@@ -730,6 +733,8 @@ test("authSetup opens the selected regional developer portal only after Enter", 
 
     assert.match(output, /This setup is for developers who are connecting the CLI to their own Clio app/);
     assert.match(output, /If this is your first time doing that, this guide will walk you through it/);
+    assert.match(output, /Confidentiality notice:/);
+    assert.match(output, /Review all output before sharing it with AI tools, tickets, chats, or other third parties/);
     assert.match(output, /WELCOME TO CLIO MANAGE/);
     assert.match(output, /Setup flow:/);
     assert.match(output, /Open your Clio developer app, or create one if you do not have one yet/);
@@ -746,6 +751,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     assert.match(output, /If you already have a Clio developer app in this region, you can use it/);
     assert.match(output, /Opened the Canada Clio developer portal in your browser/);
     assert.match(output, /In the developer portal:/);
+    assert.match(output, /Sign in first, then open the Clio developer app you want this CLI to use/);
     assert.match(output, /Use an existing Clio developer app in this region, or create a new one/);
     assert.match(output, /Select the Clio Manage permissions \(OAuth scopes\) this CLI should access/);
     assert.match(output, /Register this exact URL in your Clio developer app/);
@@ -758,6 +764,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     assert.deepStrictEqual(
       authHarness.promptLabels.map((entry) => entry.label),
       [
+        "Type yes to confirm you will review output before sharing it outside your firm",
         "Region",
         "Press Enter to open the developer portal now, or type skip to continue here",
         "App Key / Client ID (from your Clio developer app)",
@@ -779,6 +786,9 @@ test("authSetup opens the selected regional developer portal only after Enter", 
 
 test("authSetup does not open the browser when the user types skip", async () => {
   const authHarness = loadAuthSetupTest((label, fallback) => {
+    if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
+      return "yes";
+    }
     if (label === "Region") {
       return "ca";
     }
@@ -807,6 +817,26 @@ test("authSetup does not open the browser when the user types skip", async () =>
 
     assert.match(output, /Continuing without opening the browser/);
     assert.deepStrictEqual(authHarness.openCalls, []);
+  } finally {
+    authHarness.restore();
+  }
+});
+
+test("authSetup aborts when the confidentiality acknowledgment is declined", async () => {
+  const authHarness = loadAuthSetupTest((label) => {
+    if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
+      return "no";
+    }
+    throw new Error(`Unexpected prompt label: ${label}`);
+  });
+
+  try {
+    await assert.rejects(
+      () => authHarness.module.authSetup({ skipNextStepHint: true }),
+      /Setup aborted\. Review your confidentiality and client-sharing requirements/
+    );
+    assert.deepStrictEqual(authHarness.openCalls, []);
+    assert.equal(authHarness.clearedTokenSet, 0);
   } finally {
     authHarness.restore();
   }
@@ -869,6 +899,9 @@ test("setupWizard passes the config it just saved into authLogin", async () => {
     },
     promptOverrides: {
       ask: async (_rl, label, fallback) => {
+        if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
+          return "yes";
+        }
         if (label === "Region") {
           return fallback;
         }

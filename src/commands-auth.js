@@ -188,6 +188,7 @@ function printClioAppFieldGuide(redirectUri) {
 
 function printDeveloperPortalReminder(redirectUri) {
   console.log("In the developer portal:");
+  console.log("  Sign in first, then open the Clio developer app you want this CLI to use.");
   console.log("  Use an existing Clio developer app in this region, or create a new one.");
   console.log("  Select the Clio Manage permissions (OAuth scopes) this CLI should access.");
   console.log("Redirect URI:");
@@ -196,11 +197,21 @@ function printDeveloperPortalReminder(redirectUri) {
   console.log("Then copy the App Key and App Secret from that same app back here.");
 }
 
+function printConfidentialityNotice() {
+  console.log("Confidentiality notice:");
+  console.log("  clio-manage can display client-identifying, confidential, or privileged matter data.");
+  console.log("  `--redacted` is best-effort only and may miss identifiers in labels, custom fields, or free text.");
+  console.log("  Review all output before sharing it with AI tools, tickets, chats, or other third parties.");
+  console.log("  Use only with workflows and vendors your firm has approved.");
+}
+
 function printSetupIntro(redirectUri) {
   printSetupBanner();
   console.log("");
   console.log("This setup is for developers who are connecting the CLI to their own Clio app.");
   console.log("If this is your first time doing that, this guide will walk you through it.");
+  console.log("");
+  printConfidentialityNotice();
   console.log("");
   printSetupSteps();
   console.log("");
@@ -218,11 +229,29 @@ function printSetupIntro(redirectUri) {
   });
 }
 
+async function confirmConfidentialityNotice(rl) {
+  const answer = String(
+    await ask(
+      rl,
+      "Type yes to confirm you will review output before sharing it outside your firm"
+    )
+  )
+    .trim()
+    .toLowerCase();
+
+  if (answer !== "yes") {
+    throw new Error(
+      "Setup aborted. Review your confidentiality and client-sharing requirements, then rerun `clio-manage auth setup`."
+    );
+  }
+}
+
 async function authSetup(options = {}) {
   printSetupIntro(DEFAULT_REDIRECT_URI);
   console.log("");
 
   const configInput = await withPrompt(async (rl) => {
+    await confirmConfidentialityNotice(rl);
     const regionRaw = await ask(rl, "Region", DEFAULT_REGION);
     const region = normalizeRegion(regionRaw);
     const regionInfo = REGIONS[region];

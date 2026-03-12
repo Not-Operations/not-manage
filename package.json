@@ -1,6 +1,6 @@
 {
   "name": "clio-manage",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "Unofficial command-line tool for Clio Manage integrations",
   "license": "Apache-2.0",
   "private": false,

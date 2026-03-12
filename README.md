@@ -22,6 +22,7 @@ What happens next:
 
 - first-time setup: `clio-manage` starts guided setup
 - returning setup: `clio-manage` opens normally and can verify the saved connection
+- install/setup warning: the CLI reminds you that output may contain confidential client data and that redaction is best-effort only
 
 You can also run the command separately after install:
 
@@ -78,6 +79,12 @@ clio-manage auth login
 clio-manage auth status
 clio-manage whoami
 ```
+
+During setup, the CLI asks you to acknowledge that:
+
+- command output can contain confidential or privileged client information
+- `--redacted` is best-effort only and may miss identifiers in labels, custom fields, or free text
+- you must review output before sharing it with AI tools or other third parties
 
 ## Core commands
 
@@ -158,6 +165,7 @@ clio-manage matter get 456 --redacted
 - Add `--redacted` to supported data commands to mask client/contact PII in terminal and JSON output.
 - The first version redacts client/contact names, emails, phone numbers, and common PII patterns that appear inside free-text fields such as matter descriptions, activity notes, bill memos, and bill subjects.
 - Internal staff fields such as `user`, `responsible_attorney`, `responsible_staff`, and `originating_attorney` remain visible.
+- Redaction is best-effort only. Review output before sharing it outside your firm or with any AI or third-party service.
 
 ## Security model
 
@@ -168,6 +176,7 @@ clio-manage matter get 456 --redacted
 - `CLIO_*` env vars are supported for power users and automation, but are less safe than the OS keychain on shared or monitored machines.
 - Tokens are never written to plaintext files by default.
 - Command output can contain sensitive client and matter data, so avoid shell logging, screen sharing, or pasting raw output into tickets and chats.
+- This CLI does not guarantee privilege-safe or de-identified output. Your firm still needs its own review process, approved vendors, and legal/privacy sign-off where required.
 
 ## Repository hardening
 

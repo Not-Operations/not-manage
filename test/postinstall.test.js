@@ -118,7 +118,7 @@ test("postinstall setup starts immediately on a fresh install when the prompt ac
   const context = loadPostinstall();
 
   try {
-    const { result: started } = await captureConsole(() =>
+    const { logs, result: started } = await captureConsole(() =>
       context.module.maybeRunPostinstallOnboarding({
         env: { npm_config_global: "true" },
         stdin: { isTTY: true },
@@ -128,6 +128,8 @@ test("postinstall setup starts immediately on a fresh install when the prompt ac
 
     assert.equal(started, true);
     assert.equal(context.setupCalls, 1);
+    assert.match(logs.join("\n"), /Confidentiality notice:/);
+    assert.match(logs.join("\n"), /`--redacted` is best-effort only/);
     assert.deepEqual(context.promptLabels, [
       { label: "Start guided Clio setup now", fallback: "yes" },
     ]);
@@ -221,6 +223,7 @@ test("postinstall shows a setup reminder on a fresh non-interactive install", as
     assert.equal(context.findConfigCalls, 1);
     assert.equal(context.setupCalls, 0);
     assert.match(logs.join("\n"), /clio-manage is installed\./);
+    assert.match(logs.join("\n"), /Confidentiality notice:/);
     assert.match(logs.join("\n"), /Run `clio-manage setup` whenever you are ready\./);
   } finally {
     context.restore();

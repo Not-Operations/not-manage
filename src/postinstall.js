@@ -2,6 +2,14 @@ const { setupWizard } = require("./commands-auth");
 const { ask, withPrompt } = require("./prompt");
 const { findConfig } = require("./store");
 
+function printConfidentialityNotice(log = console.log) {
+  log("Confidentiality notice:");
+  log("  clio-manage can display client-identifying, confidential, or privileged matter data.");
+  log("  `--redacted` is best-effort only and may miss identifiers in labels, custom fields, or free text.");
+  log("  Review all output before sharing it with AI tools, tickets, chats, or other third parties.");
+  log("  Use only with workflows and vendors your firm has approved.");
+}
+
 function shouldShowPostinstallNotice(options = {}) {
   const env = options.env || process.env;
 
@@ -46,11 +54,14 @@ function printPostinstallIntro(log = console.log) {
   log("This prompt only appears on fresh interactive global installs.");
   log("If you skip it now, run `clio-manage setup` whenever you are ready.");
   log("");
+  printConfidentialityNotice(log);
+  log("");
 }
 
 function printPostinstallInstalledNotice(log = console.log) {
   log("");
   log("clio-manage is installed.");
+  printConfidentialityNotice(log);
   log("Run `clio-manage setup` whenever you are ready.");
 }
 
@@ -118,6 +129,7 @@ if (require.main === module) {
 module.exports = {
   main,
   maybeRunPostinstallOnboarding,
+  printConfidentialityNotice,
   shouldShowPostinstallNotice,
   shouldRunPostinstallOnboarding,
 };
