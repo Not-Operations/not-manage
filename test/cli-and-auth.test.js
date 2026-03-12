@@ -730,8 +730,11 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     assert.match(output, /WELCOME TO CLIO MANAGE/);
     assert.match(output, /Setup flow:/);
     assert.match(output, /Use an existing developer app, or create a new one if you do not have one yet/);
-    assert.match(output, /Register this exact URL in your Clio developer app/);
-    assert.match(output, /You do not need to paste it back into this CLI unless you want to override it/);
+    assert.match(output, /Clio app form guide:/);
+    assert.match(output, /Website URL \(required\): use your firm website, company site, or GitHub repo/);
+    assert.match(output, /Do not put the local callback URL in Website URL/);
+    assert.match(output, /Redirect URIs \(required\): add this exact URL on its own line/);
+    assert.match(output, /You do not need to paste the redirect URI back into this CLI unless you want to override it/);
     assert.match(
       output,
       new RegExp(REGIONS.ca.developerPortalUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))

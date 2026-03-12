@@ -176,6 +176,15 @@ function printSetupLinks(region, redirectUri) {
   console.log(`- Add this redirect URI in your Clio app: ${redirectUri}`);
 }
 
+function printClioAppFieldGuide(redirectUri) {
+  console.log("Clio app form guide:");
+  console.log("  Website URL (required): use your firm website, company site, or GitHub repo.");
+  console.log("  Do not put the local callback URL in Website URL.");
+  console.log("  Redirect URIs (required): add this exact URL on its own line:");
+  console.log(`  - ${redirectUri}`);
+  console.log("  Support URL and Deauthorization callback URL can be left blank unless you already use them.");
+}
+
 function printSetupIntro(redirectUri) {
   printSetupBanner();
   console.log("");
@@ -189,10 +198,8 @@ function printSetupIntro(redirectUri) {
   console.log(`- App creation guide: ${CLIO_APP_CREATION_GUIDE_URL}`);
   console.log(`- OAuth guide: ${CLIO_AUTHORIZATION_GUIDE_URL}`);
   console.log("");
-  console.log("Redirect URI:");
-  console.log("  Register this exact URL in your Clio developer app.");
-  console.log(`- ${redirectUri}`);
-  console.log("  You do not need to paste it back into this CLI unless you want to override it.");
+  printClioAppFieldGuide(redirectUri);
+  console.log("  You do not need to paste the redirect URI back into this CLI unless you want to override it.");
   console.log("");
   console.log("Region options:");
   Object.values(REGIONS).forEach((region) => {
@@ -214,6 +221,7 @@ async function authSetup(options = {}) {
     console.log("If you already have a Clio developer app in this region, you can use it.");
     console.log("If not, create one there first, then come back here.");
     await maybeOpenDeveloperPortal(rl, region);
+    printClioAppFieldGuide(DEFAULT_REDIRECT_URI);
     console.log("Next, copy the App Key and App Secret from that same Clio developer app.");
 
     const clientId = await ask(rl, "App Key / Client ID (from your Clio developer app)");
@@ -249,6 +257,7 @@ async function authSetup(options = {}) {
   console.log("Saved credentials to secure keychain.");
   console.log(`Region: ${saved.region} (${REGIONS[saved.region].label})`);
   printSetupLinks(saved.region, saved.redirectUri);
+  printClioAppFieldGuide(saved.redirectUri);
 
   if (!options.skipNextStepHint) {
     console.log("");

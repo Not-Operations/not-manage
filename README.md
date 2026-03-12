@@ -55,15 +55,18 @@ node bin/clio-manage.js --help
 1. Create Clio app credentials in your region:
    - https://docs.developers.clio.com/api-docs/clio-manage/applications/
    - if you do not have developer access yet: https://docs.developers.clio.com/handbook/getting-started/get-a-developer-account/
-2. Add redirect URI in your Clio app:
+2. Fill out the Clio app form:
+   - `Website URL`: use your firm site, company site, or GitHub repo
+   - do not put the loopback callback URL in `Website URL`
+3. Add redirect URI in `Redirect URIs` in your Clio app:
    - `http://127.0.0.1:53123/callback`
-3. Run setup + login:
+4. Run setup + login:
 
 ```bash
 clio-manage setup
 ```
 
-4. Verify:
+5. Verify:
 
 ```bash
 clio-manage auth status
