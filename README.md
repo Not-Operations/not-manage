@@ -150,7 +150,7 @@ clio-manage matters get 456 --redacted
 - Dependency Review blocks high-severity dependency additions in pull requests.
 - CodeQL runs on pull requests, default-branch pushes, and a weekly schedule.
 - Dependabot is configured for both npm dependencies and GitHub Actions.
-- npm release publishing is set up for provenance-backed publishes from GitHub Actions and expects an `NPM_TOKEN` secret in the `npm` environment.
+- npm release publishing is set up for provenance-backed trusted publishing from GitHub Actions using the `npm` environment.
 
 ## Env vars (optional)
 
