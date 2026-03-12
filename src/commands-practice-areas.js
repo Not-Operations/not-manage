@@ -14,7 +14,7 @@ const {
 } = require("./resource-utils");
 const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
-const DEFAULT_LIST_FIELDS = "id,code,name,category";
+const DEFAULT_LIST_FIELDS = "id,code,name,category,created_at,updated_at";
 const DEFAULT_GET_FIELDS = "id,code,name,category,created_at,updated_at";
 const MATTER_LOOKUP_FIELDS = "id,practice_area{id}";
 

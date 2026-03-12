@@ -68,6 +68,33 @@ test("redactPayload redacts high-confidence PII patterns in narrative fields", (
   );
 });
 
+test("redactPayload redacts bare names in free text and label fields while preserving staff names", () => {
+  const payload = {
+    note: "Call John Smith and Dana Doyle about the Personal Injury matter.",
+    matter: {
+      display_number: "00341 - John Smith - PI",
+      description: "Personal Injury",
+    },
+    user: {
+      name: "Dana Doyle",
+      email: "dana@example.com",
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "activity");
+
+  assert.equal(
+    output.note,
+    "Call [REDACTED_NAME] and Dana Doyle about the Personal Injury matter."
+  );
+  assert.equal(output.matter.display_number, "00341 - [REDACTED_NAME] - PI");
+  assert.equal(output.matter.description, "Personal Injury");
+  assert.deepStrictEqual(output.user, {
+    name: "Dana Doyle",
+    email: "dana@example.com",
+  });
+});
+
 test("maybeRedactPayload only transforms the data envelope", () => {
   const payload = {
     data: {

@@ -41,6 +41,67 @@ const COMMAND_ALIASES = {
   "time-entry": "time-entries",
   user: "users",
 };
+const DEFAULT_FIELDS_BY_COMMAND = {
+  activities: {
+    get:
+      "id,type,date,quantity,quantity_in_hours,rounded_quantity,rounded_quantity_in_hours,price,total,billed,on_bill,non_billable,no_charge,flat_rate,contingency_fee,note,reference,created_at,updated_at,activity_description{id,name},bill{id,number,state},matter{id,display_number,number,description},user{id,name,first_name,last_name,email}",
+    list:
+      "id,type,date,quantity,quantity_in_hours,rounded_quantity,rounded_quantity_in_hours,price,total,billed,on_bill,non_billable,no_charge,flat_rate,contingency_fee,note,reference,created_at,updated_at,activity_description{id,name},bill{id,number,state},matter{id,display_number,number,description},user{id,name,first_name,last_name,email}",
+  },
+  "billable-clients": {
+    list: "id,name,unbilled_hours,unbilled_amount,amount_in_trust,billable_matters_count",
+  },
+  "billable-matters": {
+    list:
+      "id,display_number,unbilled_hours,unbilled_amount,amount_in_trust,client{id,name,first_name,last_name}",
+  },
+  bills: {
+    get:
+      "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+    list:
+      "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+  },
+  contacts: {
+    get:
+      "id,name,first_name,last_name,type,is_client,primary_email_address,secondary_email_address,primary_phone_number,secondary_phone_number,clio_connect_email,title,prefix,created_at,updated_at",
+    list:
+      "id,name,first_name,last_name,type,is_client,primary_email_address,secondary_email_address,primary_phone_number,secondary_phone_number,clio_connect_email,title,prefix,created_at,updated_at",
+  },
+  invoices: {
+    get:
+      "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+    list:
+      "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+  },
+  matters: {
+    get:
+      "id,display_number,number,description,status,billable,open_date,close_date,pending_date,client{id,name,first_name,last_name},practice_area{id,name},responsible_attorney{id,name,email},responsible_staff{id,name,email},originating_attorney{id,name,email},created_at,updated_at",
+    list:
+      "id,display_number,number,description,status,billable,open_date,close_date,pending_date,client{id,name,first_name,last_name},practice_area{id,name},responsible_attorney{id,name,email},responsible_staff{id,name,email},originating_attorney{id,name,email},created_at,updated_at",
+  },
+  "practice-areas": {
+    get: "id,code,name,category,created_at,updated_at",
+    list: "id,code,name,category,created_at,updated_at",
+  },
+  tasks: {
+    get:
+      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}",
+    list:
+      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}",
+  },
+  "time-entries": {
+    get:
+      "id,type,date,quantity,quantity_in_hours,rounded_quantity,rounded_quantity_in_hours,price,total,billed,on_bill,non_billable,no_charge,flat_rate,contingency_fee,note,reference,created_at,updated_at,activity_description{id,name},bill{id,number,state},matter{id,display_number,number,description},user{id,name,first_name,last_name,email}",
+    list:
+      "id,type,date,quantity,quantity_in_hours,rounded_quantity,rounded_quantity_in_hours,price,total,billed,on_bill,non_billable,no_charge,flat_rate,contingency_fee,note,reference,created_at,updated_at,activity_description{id,name},bill{id,number,state},matter{id,display_number,number,description},user{id,name,first_name,last_name,email}",
+  },
+  users: {
+    get:
+      "id,name,first_name,last_name,email,enabled,roles,subscription_type,phone_number,time_zone,rate,account_owner,clio_connect,court_rules_default_attendee,created_at,updated_at",
+    list:
+      "id,name,first_name,last_name,email,enabled,roles,subscription_type,phone_number,time_zone,rate,account_owner,clio_connect,court_rules_default_attendee,created_at,updated_at",
+  },
+};
 
 function hasFlag(args, ...flags) {
   return flags.some((flag) => args.includes(flag));
@@ -84,6 +145,22 @@ function normalizeCommand(command) {
   return COMMAND_ALIASES[command] || command;
 }
 
+function maybePrintDefaultFields(command, sub, optionValues) {
+  if (optionValues.fields !== true) {
+    return false;
+  }
+
+  const defaults = DEFAULT_FIELDS_BY_COMMAND[command]?.[sub];
+  if (!defaults) {
+    throw new Error(
+      "`--fields` requires a comma-separated value for this command. Example: --fields id,name"
+    );
+  }
+
+  console.log(defaults);
+  return true;
+}
+
 function printHelp() {
   console.log("clio-manage");
   console.log("");
@@ -123,6 +200,7 @@ function printHelp() {
   console.log("  contact get, matter get, bill get, invoice get, task get, user get");
   console.log("");
   console.log("Options:");
+  console.log("  --fields <list>    Override returned fields; pass `--fields` alone to print defaults");
   console.log("  --json             Print machine-readable JSON for supported commands");
   console.log("  --redacted         Redact client/contact PII from output for safe sharing");
   console.log("  -h, --help         Show help");
@@ -159,6 +237,10 @@ async function run(args) {
   const parsedOptions = parseOptions(optionTokens);
   const optionValues = parsedOptions.parsed;
   const positional = parsedOptions.positional;
+
+  if (maybePrintDefaultFields(command, sub, optionValues)) {
+    return;
+  }
 
   if (command === "setup") {
     await setupWizard();

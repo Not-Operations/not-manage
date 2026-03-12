@@ -11,6 +11,7 @@ function loadCli() {
     activitiesList: [],
     billsGet: [],
     contactsGet: [],
+    mattersList: [],
     tasksGet: [],
     tasksList: [],
   };
@@ -51,7 +52,9 @@ function loadCli() {
     },
     "./commands-matters": {
       mattersGet: async () => {},
-      mattersList: async () => {},
+      mattersList: async (options) => {
+        calls.mattersList.push(options);
+      },
     },
     "./commands-practice-areas": {
       practiceAreasGet: async () => {},
@@ -219,6 +222,27 @@ test("cli accepts singular aliases for bill get", async () => {
       },
     ]);
   } finally {
+    restore();
+  }
+});
+
+test("cli prints the default fields when --fields is passed without a value", async () => {
+  const { calls, restore, run } = loadCli();
+  const logs = [];
+  const originalLog = console.log;
+  console.log = (...args) => {
+    logs.push(args.join(" "));
+  };
+
+  try {
+    await run(["matters", "list", "--fields"]);
+
+    assert.deepStrictEqual(calls.mattersList, []);
+    assert.deepStrictEqual(logs, [
+      "id,display_number,number,description,status,billable,open_date,close_date,pending_date,client{id,name,first_name,last_name},practice_area{id,name},responsible_attorney{id,name,email},responsible_staff{id,name,email},originating_attorney{id,name,email},created_at,updated_at",
+    ]);
+  } finally {
+    console.log = originalLog;
     restore();
   }
 });

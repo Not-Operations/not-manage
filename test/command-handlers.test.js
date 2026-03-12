@@ -484,7 +484,7 @@ test("bills list normalizes unpaid status to awaiting_payment state", async () =
     assert.deepStrictEqual(fetchCalls, [
       {
         fields:
-          "id,number,state,type,issued_at,due_at,balance,total,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+          "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
         limit: 5,
         state: "awaiting_payment",
       },
@@ -549,13 +549,13 @@ test("activities list resolves client ids through the matter collection", async 
     assert.deepStrictEqual(activityCalls, [
       {
         fields:
-          "id,type,date,quantity,quantity_in_hours,price,total,billed,on_bill,non_billable,note,matter{id,display_number,number,description},user{id,name,first_name,last_name}",
+          "id,type,date,quantity,quantity_in_hours,rounded_quantity,rounded_quantity_in_hours,price,total,billed,on_bill,non_billable,no_charge,flat_rate,contingency_fee,note,reference,created_at,updated_at,activity_description{id,name},bill{id,number,state},matter{id,display_number,number,description},user{id,name,first_name,last_name,email}",
         limit: 5,
         matter_id: 303,
       },
       {
         fields:
-          "id,type,date,quantity,quantity_in_hours,price,total,billed,on_bill,non_billable,note,matter{id,display_number,number,description},user{id,name,first_name,last_name}",
+          "id,type,date,quantity,quantity_in_hours,rounded_quantity,rounded_quantity_in_hours,price,total,billed,on_bill,non_billable,no_charge,flat_rate,contingency_fee,note,reference,created_at,updated_at,activity_description{id,name},bill{id,number,state},matter{id,display_number,number,description},user{id,name,first_name,last_name,email}",
         limit: 4,
         matter_id: 304,
       },

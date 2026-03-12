@@ -112,6 +112,8 @@ clio-manage auth revoke
 
 Plural commands still work. Singular aliases are accepted for the single-record flows so `contact get 12345` and `contacts get 12345` both work.
 
+Every data command also accepts `--fields <comma-separated-list>` to override the default response shape. If you pass `--fields` with no value, the CLI prints the current default field list for that command.
+
 ## Read-only examples
 
 ```bash
@@ -129,6 +131,7 @@ clio-manage contacts list --query "acme" --client-only
 clio-manage contact get 12345
 
 clio-manage matters list --status open --client-id 999
+clio-manage matters list --fields
 clio-manage matter get 456
 
 clio-manage bills list --overdue-only --client-id 999

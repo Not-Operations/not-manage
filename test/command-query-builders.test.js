@@ -32,7 +32,7 @@ test("buildContactQuery maps list filters and strips empty values", () => {
     created_since: "2026-01-01",
     email_only: true,
     fields:
-      "id,name,first_name,last_name,type,is_client,primary_email_address,primary_phone_number",
+      "id,name,first_name,last_name,type,is_client,primary_email_address,secondary_email_address,primary_phone_number,secondary_phone_number,clio_connect_email,title,prefix,created_at,updated_at",
     initial: "A",
     limit: 25,
     order: "name(asc)",
@@ -69,7 +69,7 @@ test("buildBillQuery maps bill filters", () => {
     due_after: "2026-03-01",
     due_before: "2026-03-31",
     fields:
-      "id,number,state,type,issued_at,due_at,balance,total,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+      "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
     issued_after: "2026-02-01",
     issued_before: "2026-02-28",
     limit: 100,
@@ -93,7 +93,7 @@ test("buildBillQuery maps unpaid bill status to awaiting_payment state", () => {
 
   assert.deepStrictEqual(query, {
     fields:
-      "id,number,state,type,issued_at,due_at,balance,total,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+      "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
     limit: 25,
     state: "awaiting_payment",
   });
@@ -131,7 +131,7 @@ test("buildActivityQuery maps activity filters", () => {
     created_since: "2026-03-01T00:00:00Z",
     end_date: "2026-03-09",
     fields:
-      "id,type,date,quantity,quantity_in_hours,price,total,billed,on_bill,non_billable,note,matter{id,display_number,number,description},user{id,name,first_name,last_name}",
+      "id,type,date,quantity,quantity_in_hours,rounded_quantity,rounded_quantity_in_hours,price,total,billed,on_bill,non_billable,no_charge,flat_rate,contingency_fee,note,reference,created_at,updated_at,activity_description{id,name},bill{id,number,state},matter{id,display_number,number,description},user{id,name,first_name,last_name,email}",
     flat_rate: false,
     limit: 100,
     matter_id: "15564573",
@@ -174,7 +174,7 @@ test("buildTaskQuery maps task filters", () => {
     due_at_from: "2026-03-01",
     due_at_to: "2026-03-31",
     fields:
-      "id,name,status,priority,due_at,matter{id,display_number,number,description},assignee{id,name},task_type{id,name}",
+      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}",
     limit: 25,
     matter_id: "15564573",
     order: "due_at(asc)",
@@ -208,7 +208,7 @@ test("buildMatterQuery maps expanded matter filters", () => {
     client_id: "9",
     created_since: "2026-01-10",
     fields:
-      "id,display_number,description,status,open_date,close_date,client{id,name,first_name,last_name}",
+      "id,display_number,number,description,status,billable,open_date,close_date,pending_date,client{id,name,first_name,last_name},practice_area{id,name},responsible_attorney{id,name,email},responsible_staff{id,name,email},originating_attorney{id,name,email},created_at,updated_at",
     limit: 50,
     order: "display_number(asc)",
     originating_attorney_id: "11",
@@ -240,7 +240,8 @@ test("buildUserQuery serializes booleans explicitly", () => {
   assert.deepStrictEqual(query, {
     created_since: "2026-01-01",
     enabled: false,
-    fields: "id,name,first_name,last_name,email,enabled,roles,subscription_type",
+    fields:
+      "id,name,first_name,last_name,email,enabled,roles,subscription_type,phone_number,time_zone,rate,account_owner,clio_connect,court_rules_default_attendee,created_at,updated_at",
     include_co_counsel: true,
     limit: 2000,
     name: "Casey",
@@ -267,7 +268,7 @@ test("buildPracticeAreaQuery maps supported practice area API filters", () => {
   assert.deepStrictEqual(query, {
     code: "FAM",
     created_since: "2026-01-01",
-    fields: "id,code,name,category",
+    fields: "id,code,name,category,created_at,updated_at",
     limit: 10,
     name: "Family",
     order: "name(asc)",
