@@ -3,6 +3,7 @@ const CONTACT_LIKE_RESOURCE_TYPES = new Set(["contact", "billable-client"]);
 const SAFE_IDENTITY_RESOURCE_TYPES = new Set(["user"]);
 const FREE_TEXT_FIELDS = new Set(["description", "memo", "note", "reference", "subject"]);
 const LABEL_FIELDS = new Set(["display_number", "number", "identifier", "title"]);
+const MATTER_LABEL_FIELDS = new Set(["display_number", "number"]);
 const NAME_FIELDS = new Set(["name", "first_name", "last_name"]);
 const EMAIL_FIELDS = new Set([
   "email",
@@ -88,6 +89,7 @@ const PLACEHOLDERS = {
   ssn: "[REDACTED_SSN]",
   taxId: "[REDACTED_TAX_ID]",
 };
+const PERSON_NAME_SUFFIXES = new Set(["esq", "ii", "iii", "iv", "jr", "sr"]);
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -233,6 +235,62 @@ function collectSafeIdentityNames(
   return preserved;
 }
 
+function derivePersonSurname(name) {
+  const tokens = normalizeString(name)
+    .split(/\s+/)
+    .map((token) => token.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, ""))
+    .filter(Boolean);
+
+  if (tokens.length < 2) {
+    return "";
+  }
+
+  let index = tokens.length - 1;
+  while (index > 0 && PERSON_NAME_SUFFIXES.has(tokens[index].toLowerCase())) {
+    index -= 1;
+  }
+
+  return index > 0 ? tokens[index] : "";
+}
+
+function collectPersonClientLabelReplacements(
+  value,
+  clientContext = false,
+  replacements = [],
+  dedupe = new Set()
+) {
+  if (Array.isArray(value)) {
+    value.forEach((item) => {
+      collectPersonClientLabelReplacements(item, clientContext, replacements, dedupe);
+    });
+    return replacements;
+  }
+
+  if (!isObject(value)) {
+    return replacements;
+  }
+
+  if (clientContext && value.type === "Person") {
+    pushReplacement(
+      replacements,
+      dedupe,
+      derivePersonSurname(value.name),
+      PLACEHOLDERS.name
+    );
+  }
+
+  Object.entries(value).forEach(([key, child]) => {
+    collectPersonClientLabelReplacements(
+      child,
+      clientContext || CLIENT_OBJECT_KEYS.has(key),
+      replacements,
+      dedupe
+    );
+  });
+
+  return replacements;
+}
+
 function replaceKnownSensitiveValues(text, replacements) {
   return replacements
     .slice()
@@ -335,11 +393,36 @@ function redactLikelyBareNames(text, preservedNames) {
     );
 }
 
-function redactStringValue(text, key, replacements, preservedNames) {
+function replaceMatterLabelDerivedNames(text, replacements) {
+  return replacements
+    .slice()
+    .sort((left, right) => right.value.length - left.value.length)
+    .reduce((output, replacement) => {
+      const matcher = new RegExp(`\\b${escapeRegExp(replacement.value)}\\b`, "gi");
+      return output.replace(matcher, replacement.placeholder);
+    }, String(text));
+}
+
+function isMatterLabelContext(path, key) {
+  return path[path.length - 1] === "matter" && MATTER_LABEL_FIELDS.has(key);
+}
+
+function redactStringValue(
+  text,
+  key,
+  replacements,
+  preservedNames,
+  derivedLabelReplacements,
+  path
+) {
   let output = String(text);
 
   output = replaceKnownSensitiveValues(output, replacements);
   output = redactPatternPii(output);
+
+  if (isMatterLabelContext(path, key)) {
+    output = replaceMatterLabelDerivedNames(output, derivedLabelReplacements);
+  }
 
   if (FREE_TEXT_FIELDS.has(key) || LABEL_FIELDS.has(key)) {
     output = redactLikelyBareNames(output, preservedNames);
@@ -354,7 +437,9 @@ function redactValue(
   contactLikeContext,
   replacements,
   preservedNames,
-  safeIdentityContext = false
+  derivedLabelReplacements,
+  safeIdentityContext = false,
+  path = []
 ) {
   if (Array.isArray(value)) {
     return value.map((item) =>
@@ -364,7 +449,9 @@ function redactValue(
         contactLikeContext,
         replacements,
         preservedNames,
-        safeIdentityContext
+        derivedLabelReplacements,
+        safeIdentityContext,
+        path
       )
     );
   }
@@ -399,7 +486,14 @@ function redactValue(
     if (typeof child === "string") {
       output[key] = safeIdentityContext
         ? child
-        : redactStringValue(child, key, replacements, preservedNames);
+        : redactStringValue(
+            child,
+            key,
+            replacements,
+            preservedNames,
+            derivedLabelReplacements,
+            path
+          );
       return;
     }
 
@@ -409,7 +503,9 @@ function redactValue(
       contactLikeContext || CLIENT_OBJECT_KEYS.has(key),
       replacements,
       preservedNames,
-      safeIdentityContext || SAFE_IDENTITY_OBJECT_KEYS.has(key)
+      derivedLabelReplacements,
+      safeIdentityContext || SAFE_IDENTITY_OBJECT_KEYS.has(key),
+      path.concat(key)
     );
   });
 
@@ -418,6 +514,7 @@ function redactValue(
 
 function redactPayload(value, resourceType) {
   const replacements = collectSensitiveReplacements(value, resourceType);
+  const derivedLabelReplacements = collectPersonClientLabelReplacements(value);
   const preservedNames = collectSafeIdentityNames(
     value,
     isSafeIdentityResourceType(resourceType)
@@ -428,6 +525,7 @@ function redactPayload(value, resourceType) {
     isContactLikeResourceType(resourceType),
     replacements,
     preservedNames,
+    derivedLabelReplacements,
     isSafeIdentityResourceType(resourceType)
   );
 }
@@ -456,11 +554,14 @@ module.exports = {
   maybeRedactData,
   maybeRedactPayload,
   __private: {
+    collectPersonClientLabelReplacements,
     collectSafeIdentityNames,
+    derivePersonSurname,
     redactLikelyBareNames,
     redactPatternPii,
     collectSensitiveReplacements,
     redactPayload,
+    replaceMatterLabelDerivedNames,
     redactStringValue,
     replaceKnownSensitiveValues,
   },

@@ -17,9 +17,9 @@ const {
 const { maybeRedactData, maybeRedactPayload } = require("./redaction");
 
 const DEFAULT_LIST_FIELDS =
-  "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}";
+  "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description,client},assignee{id,name},assigner{id,name},task_type{id,name}";
 const DEFAULT_GET_FIELDS =
-  "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}";
+  "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description,client},assignee{id,name},assigner{id,name},task_type{id,name}";
 
 function readTaskStatus(status) {
   if (!status) {

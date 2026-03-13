@@ -174,7 +174,7 @@ test("buildTaskQuery maps task filters", () => {
     due_at_from: "2026-03-01",
     due_at_to: "2026-03-31",
     fields:
-      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}",
+      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description,client},assignee{id,name},assigner{id,name},task_type{id,name}",
     limit: 25,
     matter_id: "15564573",
     order: "due_at(asc)",

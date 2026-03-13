@@ -85,9 +85,9 @@ const DEFAULT_FIELDS_BY_COMMAND = {
   },
   tasks: {
     get:
-      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}",
+      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description,client},assignee{id,name},assigner{id,name},task_type{id,name}",
     list:
-      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description},assignee{id,name},assigner{id,name},task_type{id,name}",
+      "id,name,description,status,priority,due_at,created_at,updated_at,matter{id,display_number,number,description,client},assignee{id,name},assigner{id,name},task_type{id,name}",
   },
   "time-entries": {
     get:

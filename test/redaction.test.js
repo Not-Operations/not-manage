@@ -95,6 +95,50 @@ test("redactPayload redacts bare names in free text and label fields while prese
   });
 });
 
+test("redactPayload uses person client surnames to redact task matter labels", () => {
+  const payload = {
+    name: "Follow up with Jane Smith",
+    matter: {
+      display_number: "00341 - Smith - PI",
+      description: "Smith intake review",
+      client: {
+        name: "Jane Smith",
+        type: "Person",
+      },
+    },
+    assignee: {
+      name: "Dana Doyle",
+      email: "dana@example.com",
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "task");
+
+  assert.equal(output.name, "Follow up with [REDACTED_NAME]");
+  assert.equal(output.matter.display_number, "00341 - [REDACTED_NAME] - PI");
+  assert.equal(output.matter.description, "Smith intake review");
+  assert.deepStrictEqual(output.assignee, {
+    name: "Dana Doyle",
+    email: "dana@example.com",
+  });
+});
+
+test("redactPayload does not split company client names into matter-label replacements", () => {
+  const payload = {
+    matter: {
+      display_number: "00341 - LLC - Contract",
+      client: {
+        name: "Acme LLC",
+        type: "Company",
+      },
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "task");
+
+  assert.equal(output.matter.display_number, "00341 - LLC - Contract");
+});
+
 test("maybeRedactPayload only transforms the data envelope", () => {
   const payload = {
     data: {
