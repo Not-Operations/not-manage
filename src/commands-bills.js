@@ -220,7 +220,7 @@ async function billsList(options = {}) {
 
 async function billsGet(options = {}) {
   if (!options.id) {
-    throw new Error("Usage: clio-manage bills get <id> [--fields ...] [--json]");
+    throw new Error("Usage: not-manage bills get <id> [--fields ...] [--json]");
   }
 
   const { config, accessToken } = await getAuthContext();

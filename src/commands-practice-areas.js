@@ -217,7 +217,7 @@ async function practiceAreasList(options = {}) {
 
 async function practiceAreasGet(options = {}) {
   if (!options.id) {
-    throw new Error("Usage: clio-manage practice-areas get <id> [--fields ...] [--json]");
+    throw new Error("Usage: not-manage practice-areas get <id> [--fields ...] [--json]");
   }
 
   const { config, accessToken } = await getAuthContext();

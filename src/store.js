@@ -37,7 +37,7 @@ function buildConfig(region, clientId, clientSecret, redirectUri, source) {
 
   if (!clientId || !clientSecret) {
     throw new Error(
-      "Client credentials are missing. Run `clio-manage setup` or `clio-manage auth setup`."
+      "Client credentials are missing. Run `not-manage setup` or `not-manage auth setup`."
     );
   }
 
@@ -99,7 +99,7 @@ async function getConfig() {
   }
 
   throw new Error(
-    "Clio app credentials are not configured. Run `clio-manage setup`."
+    "Clio app credentials are not configured. Run `not-manage setup`."
   );
 }
 
@@ -153,7 +153,7 @@ async function getStoredTokenSet() {
     };
   } catch (_error) {
     throw new Error(
-      "Stored token data is invalid. Run `clio-manage auth revoke` then `clio-manage auth login`."
+      "Stored token data is invalid. Run `not-manage auth revoke` then `not-manage auth login`."
     );
   }
 }

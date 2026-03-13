@@ -44,7 +44,7 @@ const specs = [
     fetchPageExport: "fetchActivitiesPage",
     fetchItemExport: "fetchActivity",
     emptyMessage: "No activities found for the selected filters.",
-    usageMessage: "Usage: clio-manage activities get <id> [--fields ...] [--json]",
+    usageMessage: "Usage: not-manage activities get <id> [--fields ...] [--json]",
     listOptions: { status: "unbilled", limit: "5" },
     getId: "11",
     sample: {
@@ -84,7 +84,7 @@ const specs = [
     fetchPageExport: "fetchContactsPage",
     fetchItemExport: "fetchContact",
     emptyMessage: "No contacts found for the selected filters.",
-    usageMessage: "Usage: clio-manage contacts get <id> [--fields ...] [--json]",
+    usageMessage: "Usage: not-manage contacts get <id> [--fields ...] [--json]",
     listOptions: { clientOnly: true, limit: "5" },
     getId: "101",
     sample: {
@@ -117,7 +117,7 @@ const specs = [
     fetchPageExport: "fetchTasksPage",
     fetchItemExport: "fetchTask",
     emptyMessage: "No tasks found for the selected filters.",
-    usageMessage: "Usage: clio-manage tasks get <id> [--fields ...] [--json]",
+    usageMessage: "Usage: not-manage tasks get <id> [--fields ...] [--json]",
     listOptions: { matterId: "303", limit: "5" },
     getId: "606",
     sample: {
@@ -150,7 +150,7 @@ const specs = [
     fetchPageExport: "fetchBillsPage",
     fetchItemExport: "fetchBill",
     emptyMessage: "No bills found for the selected filters.",
-    usageMessage: "Usage: clio-manage bills get <id> [--fields ...] [--json]",
+    usageMessage: "Usage: not-manage bills get <id> [--fields ...] [--json]",
     listOptions: { overdueOnly: true, limit: "5" },
     getId: "202",
     sample: {
@@ -190,7 +190,7 @@ const specs = [
     fetchPageExport: "fetchMattersPage",
     fetchItemExport: "fetchMatter",
     emptyMessage: "No matters found for the selected filters.",
-    usageMessage: "Usage: clio-manage matters get <id> [--fields ...] [--json]",
+    usageMessage: "Usage: not-manage matters get <id> [--fields ...] [--json]",
     listOptions: { practiceAreaId: "77", limit: "5" },
     getId: "303",
     sample: {
@@ -232,7 +232,7 @@ const specs = [
     fetchPageExport: "fetchUsersPage",
     fetchItemExport: "fetchUser",
     emptyMessage: "No users found for the selected filters.",
-    usageMessage: "Usage: clio-manage users get <id> [--fields ...] [--json]",
+    usageMessage: "Usage: not-manage users get <id> [--fields ...] [--json]",
     listOptions: { enabled: false, pendingSetup: false, limit: "5" },
     getId: "404",
     sample: {
@@ -268,7 +268,7 @@ const specs = [
     fetchPageExport: "fetchPracticeAreasPage",
     fetchItemExport: "fetchPracticeArea",
     emptyMessage: "No practice areas found for the selected filters.",
-    usageMessage: "Usage: clio-manage practice-areas get <id> [--fields ...] [--json]",
+    usageMessage: "Usage: not-manage practice-areas get <id> [--fields ...] [--json]",
     listOptions: { name: "Family", limit: "5" },
     getId: "505",
     sample: {
@@ -424,7 +424,7 @@ for (const spec of specs) {
   test(`${spec.name} list propagates auth failures`, async () => {
     const { module, restore } = loadCommandModule(spec, {
       getValidAccessToken: async () => {
-        throw new Error("You are not logged in. Run `clio-manage auth login`.");
+        throw new Error("You are not logged in. Run `not-manage auth login`.");
       },
     });
 

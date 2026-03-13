@@ -181,7 +181,7 @@ async function exchangeAuthorizationCode(config, code) {
 
 async function refreshAccessToken(config, tokenSet) {
   if (!tokenSet.refreshToken) {
-    throw new Error("Missing refresh token. Run `clio-manage auth login`.");
+    throw new Error("Missing refresh token. Run `not-manage auth login`.");
   }
 
   const refreshed = await postForm(tokenUrl(config), {
@@ -196,7 +196,7 @@ async function refreshAccessToken(config, tokenSet) {
 
 async function getValidAccessToken(config, tokenSet) {
   if (!tokenSet || !tokenSet.accessToken) {
-    throw new Error("You are not logged in. Run `clio-manage auth login`.");
+    throw new Error("You are not logged in. Run `not-manage auth login`.");
   }
 
   const now = Math.floor(Date.now() / 1000);

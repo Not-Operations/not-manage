@@ -2,9 +2,14 @@ const { setupWizard } = require("./commands-auth");
 const { ask, withPrompt } = require("./prompt");
 const { findConfig } = require("./store");
 
+const SKIP_POSTINSTALL_ENV_VARS = [
+  "NOT_MANAGE_SKIP_POSTINSTALL_SETUP",
+  "CLIO_MANAGE_SKIP_POSTINSTALL_SETUP",
+];
+
 function printConfidentialityNotice(log = console.log) {
   log("Confidentiality notice:");
-  log("  clio-manage can display client-identifying, confidential, or privileged matter data.");
+  log("  not-manage can display client-identifying, confidential, or privileged matter data.");
   log("  `--redacted` is best-effort only and may miss identifiers in labels, custom fields, or free text.");
   log("  Review all output before sharing it with AI tools, tickets, chats, or other third parties.");
   log("  Use only with workflows and vendors your firm has approved.");
@@ -13,7 +18,7 @@ function printConfidentialityNotice(log = console.log) {
 function shouldShowPostinstallNotice(options = {}) {
   const env = options.env || process.env;
 
-  if (env.CLIO_MANAGE_SKIP_POSTINSTALL_SETUP === "1") {
+  if (SKIP_POSTINSTALL_ENV_VARS.some((name) => env[name] === "1")) {
     return false;
   }
 
@@ -46,13 +51,13 @@ function shouldRunPostinstallOnboarding(options = {}) {
 function printPostinstallIntro(log = console.log) {
   log("");
   log("+===========================================+");
-  log("|          CLIO MANAGE IS INSTALLED         |");
+  log("|           NOT MANAGE IS INSTALLED         |");
   log("+===========================================+");
   log("|     Start first-time setup from npm?      |");
   log("+===========================================+");
   log("");
   log("This prompt only appears on fresh interactive global installs.");
-  log("If you skip it now, run `clio-manage setup` whenever you are ready.");
+  log("If you skip it now, run `not-manage setup` whenever you are ready.");
   log("");
   printConfidentialityNotice(log);
   log("");
@@ -60,15 +65,15 @@ function printPostinstallIntro(log = console.log) {
 
 function printPostinstallInstalledNotice(log = console.log) {
   log("");
-  log("clio-manage is installed.");
+  log("not-manage is installed.");
   printConfidentialityNotice(log);
-  log("Run `clio-manage setup` whenever you are ready.");
+  log("Run `not-manage setup` whenever you are ready.");
 }
 
 function printPostinstallWelcomeBack(log = console.log) {
   log("");
   log("Welcome back. Clio is already configured on this machine.");
-  log("Run `clio-manage auth status` to verify the current connection, or `clio-manage setup` to reconfigure.");
+  log("Run `not-manage auth status` to verify the current connection, or `not-manage setup` to reconfigure.");
 }
 
 async function maybeRunPostinstallOnboarding(options = {}) {
@@ -102,7 +107,7 @@ async function maybeRunPostinstallOnboarding(options = {}) {
     .toLowerCase();
 
   if (["n", "no", "skip"].includes(answer)) {
-    log("Skipping setup for now. Run `clio-manage setup` when you are ready.");
+    log("Skipping setup for now. Run `not-manage setup` when you are ready.");
     return false;
   }
 
@@ -118,7 +123,7 @@ async function main(options = {}) {
     await maybeRunPostinstallOnboarding(options);
   } catch (error) {
     errorLog(`Post-install setup was skipped: ${error.message}`);
-    log("Run `clio-manage setup` when you are ready.");
+    log("Run `not-manage setup` when you are ready.");
   }
 }
 

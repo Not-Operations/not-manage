@@ -85,6 +85,15 @@ test("postinstall gating only shows notices for global non-CI installs", () => {
 
     assert.equal(
       module.shouldShowPostinstallNotice({
+        env: { npm_config_global: "true", NOT_MANAGE_SKIP_POSTINSTALL_SETUP: "1" },
+        stdin: { isTTY: true },
+        stdout: { isTTY: true },
+      }),
+      false
+    );
+
+    assert.equal(
+      module.shouldShowPostinstallNotice({
         env: { npm_config_global: "true", CLIO_MANAGE_SKIP_POSTINSTALL_SETUP: "1" },
         stdin: { isTTY: true },
         stdout: { isTTY: true },
@@ -222,9 +231,9 @@ test("postinstall shows a setup reminder on a fresh non-interactive install", as
     assert.equal(result, false);
     assert.equal(context.findConfigCalls, 1);
     assert.equal(context.setupCalls, 0);
-    assert.match(logs.join("\n"), /clio-manage is installed\./);
+    assert.match(logs.join("\n"), /not-manage is installed\./);
     assert.match(logs.join("\n"), /Confidentiality notice:/);
-    assert.match(logs.join("\n"), /Run `clio-manage setup` whenever you are ready\./);
+    assert.match(logs.join("\n"), /Run `not-manage setup` whenever you are ready\./);
   } finally {
     context.restore();
   }
@@ -247,7 +256,7 @@ test("postinstall main never fails the install when setup throws", async () => {
     );
 
     assert.match(errors.join("\n"), /Post-install setup was skipped: boom/);
-    assert.match(logs.join("\n"), /Run `clio-manage setup` when you are ready\./);
+    assert.match(logs.join("\n"), /Run `not-manage setup` when you are ready\./);
   } finally {
     restore();
   }

@@ -1,4 +1,4 @@
-const { SERVICE_NAME } = require("./constants");
+const { LEGACY_SERVICE_NAME, SERVICE_NAME } = require("./constants");
 
 function loadKeytar() {
   try {
@@ -30,7 +30,14 @@ async function setSecret(account, value) {
 async function getSecret(account) {
   try {
     const keytar = loadKeytar();
-    return await keytar.getPassword(SERVICE_NAME, account);
+    // Read the renamed service first, then fall back to the legacy one.
+    for (const serviceName of [SERVICE_NAME, LEGACY_SERVICE_NAME]) {
+      const value = await keytar.getPassword(serviceName, account);
+      if (value) {
+        return value;
+      }
+    }
+    return null;
   } catch (error) {
     throw normalizeKeychainError("read", error);
   }
@@ -39,7 +46,11 @@ async function getSecret(account) {
 async function deleteSecret(account) {
   try {
     const keytar = loadKeytar();
-    await keytar.deletePassword(SERVICE_NAME, account);
+    await Promise.all(
+      [SERVICE_NAME, LEGACY_SERVICE_NAME].map((serviceName) =>
+        keytar.deletePassword(serviceName, account)
+      )
+    );
   } catch (error) {
     throw normalizeKeychainError("delete", error);
   }

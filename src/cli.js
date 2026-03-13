@@ -239,10 +239,10 @@ function warnAboutRedaction(command, sub, optionValues, redacted) {
 }
 
 function printHelp() {
-  console.log("clio-manage");
+  console.log("not-manage");
   console.log("");
   console.log("Usage:");
-  console.log("  clio-manage <command> [options]");
+  console.log("  not-manage <command> [options]");
   console.log("");
   console.log("Commands:");
   console.log("  setup              Run guided setup and OAuth login");
@@ -300,7 +300,7 @@ async function run(args) {
   }
 
   if (hasFlag(args, "-v", "--version")) {
-    console.log(`clio-manage v${version}`);
+    console.log(`not-manage v${version}`);
     return;
   }
 

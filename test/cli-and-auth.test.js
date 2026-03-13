@@ -694,7 +694,7 @@ test("cli prints help when no args are provided and onboarding is not needed", a
     const { logs } = await captureConsole(() => run([]));
     assert.equal(calls.maybeRunSetupOnFirstUse, 1);
     assert.ok(logs.includes("Usage:"));
-    assert.ok(logs.includes("  clio-manage <command> [options]"));
+    assert.ok(logs.includes("  not-manage <command> [options]"));
   } finally {
     restore();
   }
@@ -735,7 +735,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     assert.match(output, /If this is your first time doing that, this guide will walk you through it/);
     assert.match(output, /Confidentiality notice:/);
     assert.match(output, /Review all output before sharing it with AI tools, tickets, chats, or other third parties/);
-    assert.match(output, /WELCOME TO CLIO MANAGE/);
+    assert.match(output, /WELCOME TO NOT MANAGE/);
     assert.match(output, /Setup flow:/);
     assert.match(output, /Open your Clio developer app, or create one if you do not have one yet/);
     assert.match(output, /Clio app form guide:/);

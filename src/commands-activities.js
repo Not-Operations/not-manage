@@ -326,7 +326,7 @@ async function activitiesList(options = {}) {
 
 async function activitiesGet(options = {}) {
   if (!options.id) {
-    throw new Error("Usage: clio-manage activities get <id> [--fields ...] [--json]");
+    throw new Error("Usage: not-manage activities get <id> [--fields ...] [--json]");
   }
 
   const { config, accessToken } = await getAuthContext();

@@ -182,7 +182,7 @@ async function tasksList(options = {}) {
 
 async function tasksGet(options = {}) {
   if (!options.id) {
-    throw new Error("Usage: clio-manage tasks get <id> [--fields ...] [--json]");
+    throw new Error("Usage: not-manage tasks get <id> [--fields ...] [--json]");
   }
 
   const { config, accessToken } = await getAuthContext();

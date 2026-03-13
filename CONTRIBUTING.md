@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for contributing to `clio-manage`.
+Thanks for contributing to `not-manage`.
 
 ## Rights and licensing
 

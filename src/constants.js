@@ -1,4 +1,5 @@
-const SERVICE_NAME = "com.notoperations.clio-manage-cli";
+const SERVICE_NAME = "com.notoperations.not-manage-cli";
+const LEGACY_SERVICE_NAME = "com.notoperations.clio-manage-cli";
 const DEFAULT_REGION = "us";
 const DEFAULT_REDIRECT_URI = "http://127.0.0.1:53123/callback";
 const OAUTH_TIMEOUT_MS = 5 * 60 * 1000;
@@ -38,6 +39,7 @@ const REGIONS = {
 
 module.exports = {
   SERVICE_NAME,
+  LEGACY_SERVICE_NAME,
   DEFAULT_REGION,
   DEFAULT_REDIRECT_URI,
   OAUTH_TIMEOUT_MS,

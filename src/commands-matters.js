@@ -185,7 +185,7 @@ async function mattersList(options = {}) {
 
 async function mattersGet(options = {}) {
   if (!options.id) {
-    throw new Error("Usage: clio-manage matters get <id> [--fields ...] [--json]");
+    throw new Error("Usage: not-manage matters get <id> [--fields ...] [--json]");
   }
 
   const { config, accessToken } = await getAuthContext();

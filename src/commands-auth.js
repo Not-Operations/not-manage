@@ -103,7 +103,7 @@ function rewriteOAuthError(error, config) {
         "- The App ID was entered instead of the App Key.",
         "- The App Key/App Secret pair does not belong to the selected Clio region.",
         "- The redirect URI registered in the Clio app does not exactly match the value above.",
-        "Run `clio-manage auth setup` again and copy the App Key and App Secret from the same Clio developer app.",
+        "Run `not-manage auth setup` again and copy the App Key and App Secret from the same Clio developer app.",
         `Original error: ${message}`,
       ].join("\n")
     );
@@ -118,7 +118,7 @@ function collectSecurityWarnings(config, tokenSet) {
 
 function printSetupBanner() {
   console.log("+===========================================+");
-  console.log("|           WELCOME TO CLIO MANAGE          |");
+  console.log("|            WELCOME TO NOT MANAGE          |");
   console.log("+===========================================+");
   console.log("|      Local OAuth setup for this CLI       |");
   console.log("+===========================================+");
@@ -196,7 +196,7 @@ function printDeveloperPortalReminder(redirectUri) {
 
 function printConfidentialityNotice() {
   console.log("Confidentiality notice:");
-  console.log("  clio-manage can display client-identifying, confidential, or privileged matter data.");
+  console.log("  not-manage can display client-identifying, confidential, or privileged matter data.");
   console.log("  `--redacted` is best-effort only and may miss identifiers in labels, custom fields, or free text.");
   console.log("  Review all output before sharing it with AI tools, tickets, chats, or other third parties.");
   console.log("  Use only with workflows and vendors your firm has approved.");
@@ -239,7 +239,7 @@ async function confirmConfidentialityNotice(rl) {
 
   if (answer !== "yes") {
     throw new Error(
-      "Setup aborted. Review your confidentiality and client-sharing requirements, then rerun `clio-manage auth setup`."
+      "Setup aborted. Review your confidentiality and client-sharing requirements, then rerun `not-manage auth setup`."
     );
   }
 }
@@ -298,7 +298,7 @@ async function authSetup(options = {}) {
 
   if (!options.skipNextStepHint) {
     console.log("");
-    console.log("Next step: run `clio-manage auth login`");
+    console.log("Next step: run `not-manage auth login`");
   }
 
   return saved;
@@ -350,7 +350,7 @@ async function authStatus(options = {}) {
     console.log(`Config source: ${config.source}`);
     console.log(`Region: ${config.region} (${config.regionLabel})`);
     console.log("Login status: not logged in");
-    console.log("Run `clio-manage auth login`.");
+    console.log("Run `not-manage auth login`.");
     return;
   }
 

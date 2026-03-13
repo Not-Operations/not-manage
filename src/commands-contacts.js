@@ -150,7 +150,7 @@ async function contactsList(options = {}) {
 
 async function contactsGet(options = {}) {
   if (!options.id) {
-    throw new Error("Usage: clio-manage contacts get <id> [--fields ...] [--json]");
+    throw new Error("Usage: not-manage contacts get <id> [--fields ...] [--json]");
   }
 
   const { config, accessToken } = await getAuthContext();

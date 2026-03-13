@@ -1,6 +1,6 @@
 # Disclaimer
 
-`clio-manage` is a local command-line tool. It is not a law firm compliance platform, and it does not replace legal review, privacy review, or firm policy.
+`not-manage` is a local command-line tool. It is not a law firm compliance platform, and it does not replace legal review, privacy review, or firm policy.
 
 ## Important limits
 
