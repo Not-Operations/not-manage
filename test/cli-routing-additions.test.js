@@ -12,6 +12,7 @@ function loadCli() {
     billsGet: [],
     contactsGet: [],
     mattersList: [],
+    practiceAreasGet: [],
     tasksGet: [],
     tasksList: [],
   };
@@ -57,7 +58,9 @@ function loadCli() {
       },
     },
     "./commands-practice-areas": {
-      practiceAreasGet: async () => {},
+      practiceAreasGet: async (options) => {
+        calls.practiceAreasGet.push(options);
+      },
       practiceAreasList: async () => {},
     },
     "./commands-tasks": {
@@ -253,7 +256,7 @@ test("cli warns when best-effort default redaction is applied", async () => {
   }
 });
 
-test("cli allows --unredacted to bypass the default redaction warning", async () => {
+test("cli warns when a high-risk command is run with --unredacted", async () => {
   const { calls, restore, run } = loadCli();
 
   try {
@@ -267,6 +270,33 @@ test("cli allows --unredacted to bypass the default redaction warning", async ()
         id: "12345",
         json: true,
         redacted: false,
+      },
+    ]);
+    assert.match(
+      errors.join("\n"),
+      /Warning: showing raw output without redaction/
+    );
+    assert.match(
+      errors.join("\n"),
+      /Review output carefully before sharing it outside your firm or with any third party/
+    );
+  } finally {
+    restore();
+  }
+});
+
+test("cli does not warn by default for lower-risk practice area reads", async () => {
+  const { calls, restore, run } = loadCli();
+
+  try {
+    const { errors } = await captureConsole(() => run(["practice-area", "get", "45", "--json"]));
+
+    assert.deepStrictEqual(calls.practiceAreasGet, [
+      {
+        fields: undefined,
+        id: "45",
+        json: true,
+        redacted: true,
       },
     ]);
     assert.deepStrictEqual(errors, []);

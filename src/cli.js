@@ -115,6 +115,17 @@ const DATA_COMMANDS = new Set([
   "billable-matters",
   "billable-clients",
 ]);
+const HIGH_RISK_COMMANDS = new Set([
+  "activities",
+  "time-entries",
+  "tasks",
+  "contacts",
+  "matters",
+  "bills",
+  "invoices",
+  "billable-matters",
+  "billable-clients",
+]);
 const LIMITED_REDACTION_COMMANDS = new Set([
   "activities",
   "time-entries",
@@ -123,10 +134,6 @@ const LIMITED_REDACTION_COMMANDS = new Set([
   "bills",
   "invoices",
   "billable-matters",
-]);
-const LOW_EFFECT_REDACTION_COMMANDS = new Set([
-  "users",
-  "practice-areas",
 ]);
 
 function hasFlag(args, ...flags) {
@@ -195,8 +202,25 @@ function resolveRedactionPreference(optionValues) {
   return true;
 }
 
-function warnAboutRedaction(command, sub, redacted) {
-  if (!redacted || sub !== "list" && sub !== "get" || !DATA_COMMANDS.has(command)) {
+function warnAboutRedaction(command, sub, optionValues, redacted) {
+  if (sub !== "list" && sub !== "get" || !DATA_COMMANDS.has(command)) {
+    return;
+  }
+
+  const explicitUnredacted = optionValues.unredacted !== undefined;
+  const highRisk = HIGH_RISK_COMMANDS.has(command);
+
+  if (explicitUnredacted && highRisk) {
+    console.error(
+      "Warning: showing raw output without redaction. This command can include client-identifying, confidential, or privileged information."
+    );
+    console.error(
+      "Review output carefully before sharing it outside your firm or with any third party."
+    );
+    return;
+  }
+
+  if (!redacted || !highRisk) {
     return;
   }
 
@@ -210,13 +234,6 @@ function warnAboutRedaction(command, sub, redacted) {
   if (LIMITED_REDACTION_COMMANDS.has(command)) {
     console.error(
       "Warning: related matter labels, captions, and other non-client fields may still identify a matter."
-    );
-    return;
-  }
-
-  if (LOW_EFFECT_REDACTION_COMMANDS.has(command)) {
-    console.error(
-      "Warning: this endpoint may look unchanged because it does not usually contain client/contact identity fields."
     );
   }
 }
@@ -335,7 +352,7 @@ async function run(args) {
   }
 
   if ((command === "activities" || command === "time-entries") && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await activitiesList({
       activityDescriptionId:
         optionValues["activity-description-id"] || optionValues.activity_description_id,
@@ -372,7 +389,7 @@ async function run(args) {
   }
 
   if ((command === "activities" || command === "time-entries") && sub === "get") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await activitiesGet({
       fields: optionValues.fields,
       id: positional[0],
@@ -383,7 +400,7 @@ async function run(args) {
   }
 
   if (command === "tasks" && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await tasksList({
       all: Boolean(optionValues.all),
       clientId: optionValues["client-id"] || optionValues.client_id,
@@ -413,7 +430,7 @@ async function run(args) {
   }
 
   if (command === "tasks" && sub === "get") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await tasksGet({
       fields: optionValues.fields,
       id: positional[0],
@@ -424,7 +441,7 @@ async function run(args) {
   }
 
   if (command === "contacts" && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await contactsList({
       all: Boolean(optionValues.all),
       clientOnly: Boolean(optionValues["client-only"] || optionValues.client_only),
@@ -448,7 +465,7 @@ async function run(args) {
   }
 
   if (command === "contacts" && sub === "get") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await contactsGet({
       fields: optionValues.fields,
       id: positional[0],
@@ -459,7 +476,7 @@ async function run(args) {
   }
 
   if (command === "matters" && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await mattersList({
       all: Boolean(optionValues.all),
       clientId: optionValues["client-id"] || optionValues.client_id,
@@ -485,7 +502,7 @@ async function run(args) {
   }
 
   if (command === "matters" && sub === "get") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await mattersGet({
       fields: optionValues.fields,
       id: positional[0],
@@ -496,7 +513,7 @@ async function run(args) {
   }
 
   if ((command === "bills" || command === "invoices") && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await billsList({
       all: Boolean(optionValues.all),
       clientId: optionValues["client-id"] || optionValues.client_id,
@@ -523,7 +540,7 @@ async function run(args) {
   }
 
   if ((command === "bills" || command === "invoices") && sub === "get") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await billsGet({
       fields: optionValues.fields,
       id: positional[0],
@@ -534,7 +551,7 @@ async function run(args) {
   }
 
   if (command === "users" && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await usersList({
       all: Boolean(optionValues.all),
       createdSince: optionValues["created-since"] || optionValues.created_since,
@@ -563,7 +580,7 @@ async function run(args) {
   }
 
   if (command === "users" && sub === "get") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await usersGet({
       fields: optionValues.fields,
       id: positional[0],
@@ -574,7 +591,7 @@ async function run(args) {
   }
 
   if (command === "practice-areas" && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await practiceAreasList({
       all: Boolean(optionValues.all),
       code: optionValues.code,
@@ -593,7 +610,7 @@ async function run(args) {
   }
 
   if (command === "practice-areas" && sub === "get") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await practiceAreasGet({
       fields: optionValues.fields,
       id: positional[0],
@@ -604,7 +621,7 @@ async function run(args) {
   }
 
   if (command === "billable-matters" && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await billableMattersList({
       all: Boolean(optionValues.all),
       clientId: optionValues["client-id"] || optionValues.client_id,
@@ -626,7 +643,7 @@ async function run(args) {
   }
 
   if (command === "billable-clients" && sub === "list") {
-    warnAboutRedaction(command, sub, redacted);
+    warnAboutRedaction(command, sub, optionValues, redacted);
     await billableClientsList({
       all: Boolean(optionValues.all),
       clientId: optionValues["client-id"] || optionValues.client_id,

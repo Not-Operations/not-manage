@@ -168,7 +168,8 @@ clio-manage matter get 456 --redacted
 - The first version redacts client/contact names, emails, phone numbers, and common PII patterns that appear inside free-text fields such as matter descriptions, activity notes, bill memos, and bill subjects.
 - Internal staff fields such as `user`, `responsible_attorney`, `responsible_staff`, and `originating_attorney` remain visible.
 - Redaction is best-effort only. Review output before sharing it outside your firm or with any AI or third-party service.
-- Some commands can still expose identifying matter labels or related fields even in redacted mode, and the CLI warns when that risk is higher.
+- High-risk commands such as contacts, matters, activities, bills, invoices, tasks, and billable client or matter views emit additional review warnings.
+- `--unredacted` on those high-risk commands emits a stronger warning because raw output may include client-identifying, confidential, or privileged information.
 
 ## Security model
 
