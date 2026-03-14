@@ -1,6 +1,6 @@
 {
   "name": "not-manage",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Unofficial command-line tool for Clio Manage integrations",
   "license": "Apache-2.0",
   "private": false,
@@ -31,14 +31,18 @@
     "cli"
   ],
   "scripts": {
-    "check": "npm run check:syntax && npm test",
+    "check": "npm run check:syntax && npm test && npm run docs:check",
     "check:security": "npm audit --audit-level=high",
-    "check:syntax": "node --check bin/not-manage.js && node --check src/*.js && node --check test/*.test.js && node --check test/helpers/*.js",
+    "check:syntax": "node --check bin/not-manage.js && node --check src/*.js && node --check scripts/*.js && node --check test/*.test.js && node --check test/helpers/*.js",
     "dev": "node bin/not-manage.js",
+    "docs:check": "node scripts/generate-readme-cli-reference.js --check",
+    "docs:generate": "node scripts/generate-readme-cli-reference.js",
+    "hooks:install": "node scripts/install-git-hooks.js",
     "pack:check": "npm pack --dry-run",
     "postinstall": "node src/postinstall.js",
     "seed:handbook-imports": "node scripts/generate-handbook-import-csvs.js",
     "seed:historical": "node scripts/seed-historical-data.js",
+    "smoke:live": "node scripts/smoke-read-only-live.js",
     "start": "node bin/not-manage.js",
     "test": "node --test test/*.test.js"
   },

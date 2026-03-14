@@ -7,6 +7,12 @@ const {
   captureConsole,
   loadWithMocks,
 } = require("./helpers/module-test-utils");
+const {
+  createDetailPrinter,
+  createListPrinter,
+} = require("../src/resource-display");
+const { buildListQueryFromResource } = require("../src/resource-query-builder");
+const { getResourceMetadata } = require("../src/resource-metadata");
 
 const ROOT = path.resolve(__dirname, "..");
 const BASE_CONFIG = { host: "app.clio.com" };
@@ -17,6 +23,58 @@ function escapeRegExp(value) {
 }
 
 function loadCommandModule(spec, overrides = {}) {
+  if (spec.resourceName) {
+    const resourceMetadata = getResourceMetadata(spec.resourceName);
+    const apiMock = {
+      fetchResourceById: async () => ({ data: {} }),
+      fetchResourcePage: async () => buildPage([]),
+      getValidAccessToken: async () => "fresh-token",
+      ...overrides,
+    };
+
+    const { module: runnerModule, restore } = loadWithMocks(
+      path.join(ROOT, "src/resource-command-runner.js"),
+      {
+        "./clio-api": apiMock,
+        "./store": {
+          getConfig: async () => BASE_CONFIG,
+          getTokenSet: async () => BASE_TOKEN_SET,
+        },
+      }
+    );
+
+    const module = {};
+
+    if (spec.listExport && resourceMetadata.capabilities.list.enabled) {
+      module[spec.listExport] = runnerModule.createListCommand({
+        apiPath: resourceMetadata.apiPath,
+        buildQuery: (options) =>
+          buildListQueryFromResource(resourceMetadata, options, resourceMetadata.listQuery),
+        formatRow: resourceMetadata.display.list.formatRow,
+        pluralLabel: resourceMetadata.summaryLabels.plural,
+        printList: createListPrinter(resourceMetadata.display.list),
+        redactionResourceType: resourceMetadata.redaction.resourceType,
+        singularLabel: resourceMetadata.summaryLabels.singular,
+      });
+    }
+
+    if (spec.getExport && resourceMetadata.capabilities.get.enabled) {
+      module[spec.getExport] = runnerModule.createGetCommand({
+        apiPath: resourceMetadata.apiPath,
+        defaultFields: resourceMetadata.defaultFields.get,
+        printItem: createDetailPrinter(resourceMetadata.display.get),
+        redactionResourceType: resourceMetadata.redaction.resourceType,
+        usage: `Usage: not-manage ${resourceMetadata.handlerKey} get <id> [--fields ...] [--json]`,
+      });
+    }
+
+    return {
+      apiMock,
+      module,
+      restore,
+    };
+  }
+
   const runnerPath = require.resolve(path.join(ROOT, "src/resource-command-runner.js"));
   const originalRunner = require.cache[runnerPath];
   delete require.cache[runnerPath];
@@ -104,7 +162,7 @@ const specs = [
   {
     apiPath: "contacts",
     name: "contacts",
-    moduleFile: "src/commands-contacts.js",
+    resourceName: "contacts",
     listExport: "contactsList",
     getExport: "contactsGet",
     emptyMessage: "No contacts found for the selected filters.",
@@ -136,7 +194,7 @@ const specs = [
   {
     apiPath: "tasks",
     name: "tasks",
-    moduleFile: "src/commands-tasks.js",
+    resourceName: "tasks",
     listExport: "tasksList",
     getExport: "tasksGet",
     emptyMessage: "No tasks found for the selected filters.",
@@ -168,7 +226,7 @@ const specs = [
   {
     apiPath: "bills",
     name: "bills",
-    moduleFile: "src/commands-bills.js",
+    resourceName: "bills",
     listExport: "billsList",
     getExport: "billsGet",
     emptyMessage: "No bills found for the selected filters.",
@@ -207,7 +265,7 @@ const specs = [
   {
     apiPath: "matters",
     name: "matters",
-    moduleFile: "src/commands-matters.js",
+    resourceName: "matters",
     listExport: "mattersList",
     getExport: "mattersGet",
     emptyMessage: "No matters found for the selected filters.",
@@ -248,7 +306,7 @@ const specs = [
   {
     apiPath: "users",
     name: "users",
-    moduleFile: "src/commands-users.js",
+    resourceName: "users",
     listExport: "usersList",
     getExport: "usersGet",
     emptyMessage: "No users found for the selected filters.",
@@ -694,7 +752,7 @@ const billableSpecs = [
   {
     apiPath: "billable_matters",
     name: "billable matters",
-    moduleFile: "src/commands-billable-matters.js",
+    resourceName: "billable-matters",
     listExport: "billableMattersList",
     emptyMessage: "No billable matters found for the selected filters.",
     listOptions: { limit: "5", query: "CLI" },
@@ -711,7 +769,7 @@ const billableSpecs = [
   {
     apiPath: "billable_clients",
     name: "billable clients",
-    moduleFile: "src/commands-billable-clients.js",
+    resourceName: "billable-clients",
     listExport: "billableClientsList",
     emptyMessage: "No billable clients found for the selected filters.",
     listOptions: { limit: "5", query: "CLI" },

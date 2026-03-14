@@ -48,6 +48,7 @@ For local development:
 git clone https://github.com/Not-Operations/not-manage.git
 cd not-manage
 npm install
+npm run hooks:install
 node bin/not-manage.js --help
 ```
 
@@ -108,53 +109,62 @@ not-manage setup
 not-manage auth setup
 not-manage auth login
 not-manage auth status
-not-manage activities list
-not-manage activity get 123
-not-manage tasks list
-not-manage task get 789
-not-manage contacts list
-not-manage contact get 12345
-not-manage time-entries list
-not-manage billable-clients list
-not-manage billable-matters list
-not-manage bills list
-not-manage bill get 987
-not-manage invoices list
-not-manage matters list
-not-manage matter get 456
-not-manage users list
-not-manage user get 123
-not-manage practice-areas list
-not-manage practice-area get 45
-not-manage matters list --status open --limit 50
-not-manage matters list --all --json
 not-manage whoami
 not-manage auth revoke
 ```
+
+## Resource command reference
+
+<!-- GENERATED:CLI_REFERENCE:start -->
+This table is generated from resource metadata. Global auth/setup commands stay hand-written.
+
+| Command | Operations | Aliases | Required list filters |
+| --- | --- | --- | --- |
+| `activities` | `list`, `get` | `activity` | - |
+| `calendar-entries` | `list`, `get` | `calendar-entry` | - |
+| `reminders` | `list`, `get` | `reminder` | - |
+| `tasks` | `list`, `get` | `task` | - |
+| `contacts` | `list`, `get` | `contact` | - |
+| `communications` | `list`, `get` | `communication` | - |
+| `conversations` | `list`, `get` | `conversation` | - |
+| `conversation-messages` | `list`, `get` | `conversation-message` | `--conversation-id` |
+| `notes` | `list`, `get` | `note` | `--type` |
+| `custom-fields` | `list`, `get` | `custom-field` | - |
+| `time-entries` | `list`, `get` | `time-entry` | - |
+| `billable-clients` | `list` | `billable-client` | - |
+| `billable-matters` | `list` | `billable-matter` | - |
+| `bills` | `list`, `get` | `bill` | - |
+| `invoices` | `list`, `get` | `invoice` | - |
+| `outstanding-client-balances` | `list` | `outstanding-client-balance` | - |
+| `matters` | `list`, `get` | `matter` | - |
+| `matter-dockets` | `list`, `get` | `matter-docket` | - |
+| `users` | `list`, `get` | `user` | - |
+| `practice-areas` | `list`, `get` | `practice-area` | - |
+| `my-events` | `list` | `my-event` | - |
+
+Required list filters are enforced by the CLI before it calls Clio.
+<!-- GENERATED:CLI_REFERENCE:end -->
 
 Plural commands still work. Singular aliases are accepted for the single-record flows so `contact get 12345` and `contacts get 12345` both work.
 
 Every data command also accepts `--fields <comma-separated-list>` to override the default response shape. If you pass `--fields` with no value, the CLI prints the current default field list for that command.
 
-## Additional read-only resources
+## Live smoke checks
 
-`not-manage --help` now also includes these read-only resources:
+In a local checkout, if you already have an authenticated test account, you can run a safe read-only smoke pass:
 
-- `calendar-entries list|get`
-- `reminders list|get`
-- `communications list|get`
-- `conversations list|get`
-- `conversation-messages list|get`
-- `notes list|get`
-- `custom-fields list|get`
+```bash
+npm run smoke:live
+```
+
+This exercises a small set of real CLI reads against the currently authenticated Clio account:
+
+- `auth status`
+- `whoami`
+- `users list`
+- `notes list --type Matter`
 - `outstanding-client-balances list`
-- `matter-dockets list|get`
-- `my-events list`
-
-Two list commands have required filters:
-
-- `conversation-messages list` requires `--conversation-id`
-- `notes list` requires `--type Matter` or `--type Contact`
+- `calendar-entries list`
 
 ## Read-only examples
 

@@ -700,9 +700,18 @@ test("cli prints help when no args are provided and onboarding is not needed", a
 
   try {
     const { logs } = await captureConsole(() => run([]));
+    const output = logs.join("\n");
     assert.equal(calls.maybeRunSetupOnFirstUse, 1);
     assert.ok(logs.includes("Usage:"));
     assert.ok(logs.includes("  not-manage <command> [options]"));
+    assert.match(
+      output,
+      /conversation-messages list\s+List conversation messages for a conversation \(requires --conversation-id\)/
+    );
+    assert.match(
+      output,
+      /notes list\s+List notes with filters and pagination \(requires --type\)/
+    );
   } finally {
     restore();
   }

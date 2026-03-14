@@ -1,12 +1,5 @@
 const { activitiesGet, activitiesList } = require("./commands-activities");
-const { billableClientsList } = require("./commands-billable-clients");
-const { billableMattersList } = require("./commands-billable-matters");
-const { billsGet, billsList } = require("./commands-bills");
-const { contactsGet, contactsList } = require("./commands-contacts");
-const { mattersGet, mattersList } = require("./commands-matters");
 const { practiceAreasGet, practiceAreasList } = require("./commands-practice-areas");
-const { tasksGet, tasksList } = require("./commands-tasks");
-const { usersGet, usersList } = require("./commands-users");
 const {
   createDetailPrinter,
   createListPrinter,
@@ -19,35 +12,9 @@ const RESOURCE_HANDLERS = {
     get: activitiesGet,
     list: activitiesList,
   },
-  "billable-clients": {
-    list: billableClientsList,
-  },
-  "billable-matters": {
-    list: billableMattersList,
-  },
-  bills: {
-    get: billsGet,
-    list: billsList,
-  },
-  contacts: {
-    get: contactsGet,
-    list: contactsList,
-  },
-  matters: {
-    get: mattersGet,
-    list: mattersList,
-  },
   "practice-areas": {
     get: practiceAreasGet,
     list: practiceAreasList,
-  },
-  tasks: {
-    get: tasksGet,
-    list: tasksList,
-  },
-  users: {
-    get: usersGet,
-    list: usersList,
   },
 };
 
@@ -65,7 +32,7 @@ function createGenericHandlers(resourceMetadata) {
 
   const handlers = {};
 
-  if (resourceMetadata.supports.list && resourceMetadata.display.list) {
+  if (resourceMetadata.capabilities.list.enabled && resourceMetadata.display.list) {
     const printList = createListPrinter(resourceMetadata.display.list);
     handlers.list = createListCommand({
       apiPath: resourceMetadata.apiPath,
@@ -79,7 +46,7 @@ function createGenericHandlers(resourceMetadata) {
     });
   }
 
-  if (resourceMetadata.supports.get && resourceMetadata.display.get) {
+  if (resourceMetadata.capabilities.get.enabled && resourceMetadata.display.get) {
     const printItem = createDetailPrinter(resourceMetadata.display.get);
     handlers.get = createGetCommand({
       apiPath: resourceMetadata.apiPath,

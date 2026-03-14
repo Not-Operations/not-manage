@@ -196,6 +196,63 @@ function readMyEventTitle(record) {
   return record?.event?.title || record?.event?.message || record?.event?.description || "-";
 }
 
+const VALID_BILL_STATUSES = new Set(["all", "overdue"]);
+
+function normalizeBillStatusFilters(options = {}) {
+  const state =
+    typeof options.state === "string"
+      ? options.state.trim() || undefined
+      : options.state || undefined;
+
+  if (options.status === undefined || options.status === null || options.status === "") {
+    return { state, status: undefined };
+  }
+
+  if (typeof options.status !== "string") {
+    throw new Error(
+      "Invalid value for --status on bills/invoices. Use `all`, `overdue`, or `unpaid`."
+    );
+  }
+
+  const status = options.status.trim().toLowerCase();
+
+  if (!status) {
+    throw new Error(
+      "Invalid value for --status on bills/invoices. Use `all`, `overdue`, or `unpaid`."
+    );
+  }
+
+  if (status === "unpaid") {
+    if (state && state !== "awaiting_payment") {
+      throw new Error(
+        "`--status unpaid` conflicts with `--state`. Use `--state awaiting_payment` or remove one of the filters."
+      );
+    }
+
+    return {
+      state: state || "awaiting_payment",
+      status: undefined,
+    };
+  }
+
+  if (!VALID_BILL_STATUSES.has(status)) {
+    throw new Error(
+      "Invalid value for --status on bills/invoices. Use `all`, `overdue`, or `unpaid`."
+    );
+  }
+
+  return { state, status };
+}
+
+function applyBillStatusFilters(query, options) {
+  const filters = normalizeBillStatusFilters(options);
+  return {
+    ...query,
+    state: filters.state,
+    status: filters.status,
+  };
+}
+
 const RESOURCE_ORDER = [
   "activities",
   "calendar-entries",
@@ -521,6 +578,7 @@ const RESOURCE_METADATA = {
     },
     listQuery: {
       limitMax: 200,
+      transform: applyBillStatusFilters,
     },
     redaction: {
       resourceType: "bill",
@@ -705,6 +763,10 @@ const RESOURCE_METADATA = {
         type: { kind: "string", option: "type" },
         updatedSince: { kind: "string", option: "updated-since" },
       },
+    },
+    listQuery: {
+      limitMax: 200,
+      transform: applyBillStatusFilters,
     },
     redaction: {
       resourceType: "bill",
@@ -1506,6 +1568,11 @@ const RESOURCE_METADATA = {
         return query;
       },
     },
+    capabilities: {
+      list: {
+        requiredOptions: ["conversationId"],
+      },
+    },
     redaction: {
       resourceType: "conversation-message",
       warningLevel: "limited",
@@ -1609,6 +1676,11 @@ const RESOURCE_METADATA = {
           ...query,
           type: normalizedType === "matter" ? "Matter" : "Contact",
         };
+      },
+    },
+    capabilities: {
+      list: {
+        requiredOptions: ["type"],
       },
     },
     redaction: {
@@ -2096,6 +2168,23 @@ const RESOURCE_METADATA = {
   },
 };
 
+function normalizeOperationCapability(resourceMetadata, sub) {
+  const overrides = resourceMetadata.capabilities?.[sub] || {};
+  return {
+    enabled: Boolean(resourceMetadata.supports?.[sub]),
+    requiredOptions: Array.isArray(overrides.requiredOptions)
+      ? overrides.requiredOptions
+      : [],
+  };
+}
+
+Object.values(RESOURCE_METADATA).forEach((resourceMetadata) => {
+  resourceMetadata.capabilities = {
+    get: normalizeOperationCapability(resourceMetadata, "get"),
+    list: normalizeOperationCapability(resourceMetadata, "list"),
+  };
+});
+
 const ALIAS_TO_COMMAND = RESOURCE_ORDER.reduce((aliases, command) => {
   const metadata = RESOURCE_METADATA[command];
   metadata.aliases.forEach((alias) => {
@@ -2116,10 +2205,24 @@ function normalizeResourceCommand(command) {
   return ALIAS_TO_COMMAND[command] || command;
 }
 
+function listRequiredOptionFlags(resourceMetadata, sub) {
+  if (!resourceMetadata) {
+    return [];
+  }
+
+  const requiredOptions = resourceMetadata.capabilities?.[sub]?.requiredOptions || [];
+  return requiredOptions.map((propertyName) => {
+    const optionName = resourceMetadata.optionSchema?.[sub]?.[propertyName]?.option;
+    return optionName ? `--${optionName}` : propertyName;
+  });
+}
+
 module.exports = {
   RESOURCE_METADATA,
   RESOURCE_ORDER,
   getResourceMetadata,
   listResourceMetadata,
+  listRequiredOptionFlags,
   normalizeResourceCommand,
+  normalizeBillStatusFilters,
 };

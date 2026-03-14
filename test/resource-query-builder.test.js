@@ -66,3 +66,35 @@ test("resource query builder normalizes note types", () => {
     /must be `Matter` or `Contact`/
   );
 });
+
+test("resource query builder normalizes bill status filters for generic bill handlers", () => {
+  const metadata = getResourceMetadata("bills");
+
+  const query = buildListQueryFromResource(
+    metadata,
+    {
+      limit: "5",
+      status: "unpaid",
+    },
+    metadata.listQuery
+  );
+
+  assert.deepStrictEqual(query, {
+    fields:
+      "id,number,state,type,kind,subject,memo,issued_at,due_at,paid,paid_at,pending,due,total,balance,created_at,updated_at,client{id,name,first_name,last_name},matters{id,display_number,number,description}",
+    limit: 5,
+    state: "awaiting_payment",
+  });
+
+  assert.throws(
+    () =>
+      buildListQueryFromResource(
+        metadata,
+        {
+          status: "open",
+        },
+        metadata.listQuery
+      ),
+    /Use `all`, `overdue`, or `unpaid`/
+  );
+});

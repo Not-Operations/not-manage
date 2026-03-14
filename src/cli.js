@@ -12,6 +12,7 @@ const { getResourceHandler } = require("./resource-handlers");
 const {
   RESOURCE_ORDER,
   getResourceMetadata,
+  listRequiredOptionFlags,
   normalizeResourceCommand,
 } = require("./resource-metadata");
 const { version } = require("../package.json");
@@ -89,12 +90,15 @@ function printHelp() {
   RESOURCE_ORDER.forEach((command) => {
     const resourceMetadata = getResourceMetadata(command);
     ["list", "get"].forEach((sub) => {
-      if (!resourceMetadata.supports[sub]) {
+      if (!resourceMetadata.capabilities[sub].enabled) {
         return;
       }
 
       const usage = `${command} ${sub}`.padEnd(18, " ");
-      console.log(`  ${usage} ${resourceMetadata.help[sub]}`);
+      const requiredFlags = listRequiredOptionFlags(resourceMetadata, sub);
+      const requirementNote =
+        requiredFlags.length > 0 ? ` (requires ${requiredFlags.join(", ")})` : "";
+      console.log(`  ${usage} ${resourceMetadata.help[sub]}${requirementNote}`);
     });
   });
 

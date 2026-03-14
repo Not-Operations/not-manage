@@ -1,18 +1,20 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const activities = require("../src/commands-activities");
-const billableClients = require("../src/commands-billable-clients");
-const billableMatters = require("../src/commands-billable-matters");
-const contacts = require("../src/commands-contacts");
-const bills = require("../src/commands-bills");
-const matters = require("../src/commands-matters");
-const tasks = require("../src/commands-tasks");
-const users = require("../src/commands-users");
-const practiceAreas = require("../src/commands-practice-areas");
+const { buildListQueryFromResource } = require("../src/resource-query-builder");
+const { getResourceMetadata } = require("../src/resource-metadata");
+
+function buildQuery(resourceName, options) {
+  const resourceMetadata = getResourceMetadata(resourceName);
+  return buildListQueryFromResource(resourceMetadata, options, resourceMetadata.listQuery);
+}
+
+function formatRow(resourceName, record) {
+  return getResourceMetadata(resourceName).display.list.formatRow(record);
+}
 
 test("buildContactQuery maps list filters and strips empty values", () => {
-  const query = contacts.__private.buildContactQuery({
+  const query = buildQuery("contacts", {
     clientOnly: true,
     clioConnectOnly: true,
     createdSince: "2026-01-01",
@@ -44,7 +46,7 @@ test("buildContactQuery maps list filters and strips empty values", () => {
 });
 
 test("buildBillQuery maps bill filters", () => {
-  const query = bills.__private.buildBillQuery({
+  const query = buildQuery("bills", {
     clientId: "12",
     createdSince: "2026-01-01",
     dueAfter: "2026-03-01",
@@ -86,7 +88,7 @@ test("buildBillQuery maps bill filters", () => {
 });
 
 test("buildBillQuery maps unpaid bill status to awaiting_payment state", () => {
-  const query = bills.__private.buildBillQuery({
+  const query = buildQuery("bills", {
     limit: "25",
     status: "unpaid",
   });
@@ -101,13 +103,13 @@ test("buildBillQuery maps unpaid bill status to awaiting_payment state", () => {
 
 test("buildBillQuery rejects unsupported bill statuses", () => {
   assert.throws(
-    () => bills.__private.buildBillQuery({ status: "open" }),
+    () => buildQuery("bills", { status: "open" }),
     /Use `all`, `overdue`, or `unpaid`/
   );
 });
 
 test("buildActivityQuery maps activity filters", () => {
-  const query = activities.__private.buildActivityQuery({
+  const query = buildQuery("activities", {
     activityDescriptionId: "88",
     createdSince: "2026-03-01T00:00:00Z",
     endDate: "2026-03-09",
@@ -149,7 +151,7 @@ test("buildActivityQuery maps activity filters", () => {
 });
 
 test("buildTaskQuery maps task filters", () => {
-  const query = tasks.__private.buildTaskQuery({
+  const query = buildQuery("tasks", {
     clientId: "12",
     complete: false,
     createdSince: "2026-03-01T00:00:00Z",
@@ -189,7 +191,7 @@ test("buildTaskQuery maps task filters", () => {
 });
 
 test("buildMatterQuery maps expanded matter filters", () => {
-  const query = matters.__private.buildMatterQuery({
+  const query = buildQuery("matters", {
     clientId: "9",
     createdSince: "2026-01-10",
     limit: "50",
@@ -223,7 +225,7 @@ test("buildMatterQuery maps expanded matter filters", () => {
 });
 
 test("buildUserQuery serializes booleans explicitly", () => {
-  const query = users.__private.buildUserQuery({
+  const query = buildQuery("users", {
     createdSince: "2026-01-01",
     enabled: false,
     includeCoCounsel: true,
@@ -255,7 +257,7 @@ test("buildUserQuery serializes booleans explicitly", () => {
 });
 
 test("buildPracticeAreaQuery maps supported practice area API filters", () => {
-  const query = practiceAreas.__private.buildPracticeAreaQuery({
+  const query = buildQuery("practice-areas", {
     code: "FAM",
     createdSince: "2026-01-01",
     limit: "10",
@@ -278,7 +280,7 @@ test("buildPracticeAreaQuery maps supported practice area API filters", () => {
 });
 
 test("buildBillableMatterQuery maps billable matter filters", () => {
-  const query = billableMatters.__private.buildBillableMatterQuery({
+  const query = buildQuery("billable-matters", {
     clientId: "18638250",
     endDate: "2026-03-09",
     limit: "250",
@@ -306,7 +308,7 @@ test("buildBillableMatterQuery maps billable matter filters", () => {
 });
 
 test("buildBillableClientQuery maps billable client filters", () => {
-  const query = billableClients.__private.buildBillableClientQuery({
+  const query = buildQuery("billable-clients", {
     clientId: "18638250",
     endDate: "2026-03-09",
     limit: "25",
@@ -333,17 +335,17 @@ test("buildBillableClientQuery maps billable client filters", () => {
 });
 
 test("query builders fail fast on invalid limits", () => {
-  assert.throws(() => contacts.__private.buildContactQuery({ limit: "0" }), /--limit/);
-  assert.throws(() => activities.__private.buildActivityQuery({ limit: "500" }), /--limit/);
-  assert.throws(() => bills.__private.buildBillQuery({ limit: "500" }), /--limit/);
-  assert.throws(() => tasks.__private.buildTaskQuery({ limit: "500" }), /--limit/);
-  assert.throws(() => users.__private.buildUserQuery({ limit: "2001" }), /--limit/);
-  assert.throws(() => billableClients.__private.buildBillableClientQuery({ limit: "26" }), /--limit/);
+  assert.throws(() => buildQuery("contacts", { limit: "0" }), /--limit/);
+  assert.throws(() => buildQuery("activities", { limit: "500" }), /--limit/);
+  assert.throws(() => buildQuery("bills", { limit: "500" }), /--limit/);
+  assert.throws(() => buildQuery("tasks", { limit: "500" }), /--limit/);
+  assert.throws(() => buildQuery("users", { limit: "2001" }), /--limit/);
+  assert.throws(() => buildQuery("billable-clients", { limit: "26" }), /--limit/);
 });
 
 test("row formatters normalize common Clio response shapes", () => {
   assert.deepStrictEqual(
-    contacts.__private.formatContactRow({
+    formatRow("contacts", {
       id: 1,
       first_name: "Alex",
       last_name: "Avery",
@@ -363,7 +365,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    activities.__private.formatActivityRow({
+    formatRow("activities", {
       id: 7,
       type: "TimeEntry",
       date: "2026-03-09",
@@ -386,7 +388,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    tasks.__private.formatTaskRow({
+    formatRow("tasks", {
       id: 10,
       status: "pending",
       due_at: "2026-03-22",
@@ -405,7 +407,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    bills.__private.formatBillRow({
+    formatRow("bills", {
       id: 2,
       number: "B-100",
       state: "open",
@@ -424,7 +426,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    billableMatters.__private.formatBillableMatterRow({
+    formatRow("billable-matters", {
       id: 8,
       display_number: "MAT-88",
       client: { name: "Acme LLC" },
@@ -443,7 +445,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    billableClients.__private.formatBillableClientRow({
+    formatRow("billable-clients", {
       id: 9,
       name: "Acme LLC",
       unbilled_hours: 2.5,
@@ -462,7 +464,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    matters.__private.formatMatterRow({
+    formatRow("matters", {
       id: 3,
       display_number: "MAT-3",
       status: { name: "Open" },
@@ -479,7 +481,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    users.__private.formatUserRow({
+    formatRow("users", {
       id: 4,
       first_name: "Dana",
       last_name: "Doyle",
@@ -497,7 +499,7 @@ test("row formatters normalize common Clio response shapes", () => {
   );
 
   assert.deepStrictEqual(
-    practiceAreas.__private.formatPracticeAreaRow({
+    formatRow("practice-areas", {
       id: 5,
       code: "EST",
       name: "Estate Planning",
