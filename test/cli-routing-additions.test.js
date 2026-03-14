@@ -10,6 +10,8 @@ function loadCli() {
   const calls = {
     activitiesList: [],
     billsGet: [],
+    calendarEntriesList: [],
+    conversationMessagesList: [],
     contactsGet: [],
     mattersList: [],
     practiceAreasGet: [],
@@ -36,11 +38,21 @@ function loadCli() {
               calls.activitiesList.push(options);
             },
           },
+          "calendar-entries": {
+            list: async (options) => {
+              calls.calendarEntriesList.push(options);
+            },
+          },
           bills: {
             get: async (options) => {
               calls.billsGet.push(options);
             },
             list: async () => {},
+          },
+          "conversation-messages": {
+            list: async (options) => {
+              calls.conversationMessagesList.push(options);
+            },
           },
           contacts: {
             get: async (options) => {
@@ -182,6 +194,95 @@ test("cli routes tasks get", async () => {
         id: "789",
         json: false,
         redacted: true,
+      },
+    ]);
+  } finally {
+    restore();
+  }
+});
+
+test("cli routes calendar entries list filters", async () => {
+  const { calls, restore, run } = loadCli();
+
+  try {
+    await run([
+      "calendar-entries",
+      "list",
+      "--calendar-id",
+      "22",
+      "--ids",
+      "1,2",
+      "--visible",
+      "false",
+      "--from",
+      "2026-03-01T00:00:00Z",
+      "--to",
+      "2026-03-31T00:00:00Z",
+    ]);
+
+    assert.deepStrictEqual(calls.calendarEntriesList, [
+      {
+        all: false,
+        calendarId: "22",
+        createdSince: undefined,
+        expanded: undefined,
+        externalPropertyName: undefined,
+        externalPropertyValue: undefined,
+        fields: undefined,
+        from: "2026-03-01T00:00:00Z",
+        hasCourtRule: undefined,
+        ids: ["1", "2"],
+        isAllDay: undefined,
+        json: false,
+        limit: undefined,
+        matterId: undefined,
+        ownerEntriesAcrossAllUsers: undefined,
+        pageToken: undefined,
+        query: undefined,
+        redacted: true,
+        source: undefined,
+        to: "2026-03-31T00:00:00Z",
+        updatedSince: undefined,
+        visible: false,
+      },
+    ]);
+  } finally {
+    restore();
+  }
+});
+
+test("cli routes conversation messages list filters", async () => {
+  const { calls, restore, run } = loadCli();
+
+  try {
+    await run([
+      "conversation-messages",
+      "list",
+      "--conversation-id",
+      "88",
+      "--ids",
+      "101",
+      "--ids",
+      "102",
+      "--query",
+      "status",
+      "--json",
+    ]);
+
+    assert.deepStrictEqual(calls.conversationMessagesList, [
+      {
+        all: false,
+        conversationId: "88",
+        createdSince: undefined,
+        fields: undefined,
+        ids: ["101", "102"],
+        json: true,
+        limit: undefined,
+        order: undefined,
+        pageToken: undefined,
+        query: "status",
+        redacted: true,
+        updatedSince: undefined,
       },
     ]);
   } finally {

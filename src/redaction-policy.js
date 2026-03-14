@@ -23,7 +23,9 @@ const DEFAULT_POLICY = {
     "memo",
     "message",
     "note",
+    "primary_detail",
     "reference",
+    "secondary_detail",
     "snippet",
     "subject",
     "summary",
@@ -39,7 +41,10 @@ const DEFAULT_POLICY = {
     "identifier",
     "name",
     "number",
+    "option",
+    "secondary_identifier",
     "summary",
+    "tertiary_identifier",
     "title",
   ]),
   matterLabelFields: new Set(["display_number", "number"]),
@@ -61,6 +66,7 @@ const DEFAULT_POLICY = {
 
 const RESOURCE_POLICY_OVERRIDES = {
   "calendar-entry": {
+    clientObjectKeys: new Set(["attendees"]),
     freeTextFields: new Set(["summary", "location"]),
     labelFields: new Set(["summary"]),
   },
@@ -68,6 +74,7 @@ const RESOURCE_POLICY_OVERRIDES = {
     contactLikeResource: true,
   },
   communication: {
+    clientObjectKeys: new Set(["senders", "receivers"]),
     freeTextFields: new Set(["body", "content", "detail", "message"]),
   },
   contact: {
@@ -77,6 +84,7 @@ const RESOURCE_POLICY_OVERRIDES = {
     freeTextFields: new Set(["body", "content", "message", "snippet"]),
   },
   "conversation-message": {
+    clientObjectKeys: new Set(["receivers", "sender"]),
     freeTextFields: new Set(["body", "content", "message", "text"]),
   },
   "custom-field": {
@@ -89,6 +97,16 @@ const RESOURCE_POLICY_OVERRIDES = {
   },
   note: {
     freeTextFields: new Set(["detail", "message", "text"]),
+  },
+  "my-event": {
+    freeTextFields: new Set([
+      "description",
+      "message",
+      "primary_detail",
+      "secondary_detail",
+      "title",
+    ]),
+    labelFields: new Set(["primary_detail", "secondary_detail", "title"]),
   },
   user: {
     safeIdentityResource: true,
