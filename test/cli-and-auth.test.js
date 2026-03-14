@@ -25,14 +25,6 @@ function loadCli(authOverrides = {}) {
   };
 
   const { module, restore } = loadWithMocks(path.join(ROOT, "src/cli.js"), {
-    "./commands-activities": {
-      activitiesGet: async (options) => {
-        calls.activitiesGet.push(options);
-      },
-      activitiesList: async (options) => {
-        calls.activitiesList.push(options);
-      },
-    },
     "./commands-auth": {
       authLogin: async () => {},
       authRevoke: async () => {},
@@ -46,44 +38,60 @@ function loadCli(authOverrides = {}) {
       whoAmI: async () => {},
       ...authOverrides,
     },
-    "./commands-bills": {
-      billsGet: async () => {},
-      billsList: async (options) => {
-        calls.billsList.push(options);
-      },
-    },
-    "./commands-billable-clients": {
-      billableClientsList: async (options) => {
-        calls.billableClientsList.push(options);
-      },
-    },
-    "./commands-billable-matters": {
-      billableMattersList: async (options) => {
-        calls.billableMattersList.push(options);
-      },
-    },
-    "./commands-contacts": {
-      contactsGet: async () => {},
-      contactsList: async (options) => {
-        calls.contactsList.push(options);
-      },
-    },
-    "./commands-matters": {
-      mattersGet: async () => {},
-      mattersList: async (options) => {
-        calls.mattersList.push(options);
-      },
-    },
-    "./commands-practice-areas": {
-      practiceAreasGet: async () => {},
-      practiceAreasList: async (options) => {
-        calls.practiceAreasList.push(options);
-      },
-    },
-    "./commands-users": {
-      usersGet: async () => {},
-      usersList: async (options) => {
-        calls.usersList.push(options);
+    "./resource-handlers": {
+      getResourceHandler: (resourceMetadata, subcommand) => {
+        const handlers = {
+          activities: {
+            get: async (options) => {
+              calls.activitiesGet.push(options);
+            },
+            list: async (options) => {
+              calls.activitiesList.push(options);
+            },
+          },
+          "billable-clients": {
+            list: async (options) => {
+              calls.billableClientsList.push(options);
+            },
+          },
+          "billable-matters": {
+            list: async (options) => {
+              calls.billableMattersList.push(options);
+            },
+          },
+          bills: {
+            get: async () => {},
+            list: async (options) => {
+              calls.billsList.push(options);
+            },
+          },
+          contacts: {
+            get: async () => {},
+            list: async (options) => {
+              calls.contactsList.push(options);
+            },
+          },
+          matters: {
+            get: async () => {},
+            list: async (options) => {
+              calls.mattersList.push(options);
+            },
+          },
+          "practice-areas": {
+            get: async () => {},
+            list: async (options) => {
+              calls.practiceAreasList.push(options);
+            },
+          },
+          users: {
+            get: async () => {},
+            list: async (options) => {
+              calls.usersList.push(options);
+            },
+          },
+        };
+
+        return handlers[resourceMetadata?.handlerKey]?.[subcommand] || null;
       },
     },
   });

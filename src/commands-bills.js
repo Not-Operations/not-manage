@@ -1,12 +1,8 @@
 const {
-  clip,
-  compactQuery,
-  formatMoney,
-  parseLimit,
-  printKeyValueRows,
-  readContactName,
-  readMatterLabel,
-} = require("./resource-utils");
+  createDetailPrinter,
+  createListPrinter,
+} = require("./resource-display");
+const { buildListQueryFromResource } = require("./resource-query-builder");
 const { createGetCommand, createListCommand } = require("./resource-command-runner");
 const { getResourceMetadata } = require("./resource-metadata");
 
@@ -60,106 +56,25 @@ function normalizeBillStatusFilters(options = {}) {
 }
 
 function buildBillQuery(options) {
-  const filters = normalizeBillStatusFilters(options);
-
-  return compactQuery({
-    client_id: options.clientId || undefined,
-    created_since: options.createdSince || undefined,
-    due_after: options.dueAfter || undefined,
-    due_before: options.dueBefore || undefined,
-    fields: options.fields || BILL_RESOURCE.defaultFields.list,
-    issued_after: options.issuedAfter || undefined,
-    issued_before: options.issuedBefore || undefined,
-    limit: parseLimit(options.limit),
-    matter_id: options.matterId || undefined,
-    order: options.order || undefined,
-    overdue_only: options.overdueOnly ? true : undefined,
-    page_token: options.pageToken || undefined,
-    query: options.query || undefined,
-    state: filters.state,
-    status: filters.status,
-    type: options.type || undefined,
-    updated_since: options.updatedSince || undefined,
+  return buildListQueryFromResource(BILL_RESOURCE, options, {
+    ...BILL_RESOURCE.listQuery,
+    transform(query, currentOptions) {
+      const filters = normalizeBillStatusFilters(currentOptions);
+      return {
+        ...query,
+        state: filters.state,
+        status: filters.status,
+      };
+    },
   });
-}
-
-function readFirstMatterLabel(bill) {
-  const matters = Array.isArray(bill.matters) ? bill.matters : [];
-  if (matters.length === 0) {
-    return "-";
-  }
-
-  return readMatterLabel(matters[0]);
 }
 
 function formatBillRow(bill) {
-  return {
-    id: String(bill.id || "-"),
-    number: String(bill.number || "-"),
-    state: String(bill.state || "-"),
-    client: readContactName(bill.client),
-    dueAt: String(bill.due_at || "-"),
-    balance: formatMoney(bill.balance),
-  };
+  return BILL_RESOURCE.display.list.formatRow(bill);
 }
 
-function printBillList(rows, options) {
-  if (rows.length === 0) {
-    console.log("No bills found for the selected filters.");
-    return;
-  }
-
-  const visibleRows = rows.slice(0, 50);
-  console.log("ID       BILL           STATE        CLIENT                       DUE          BALANCE");
-  console.log("-------- -------------- ------------ ---------------------------- ------------ ----------");
-
-  visibleRows.forEach((row) => {
-    const line = [
-      clip(row.id, 8).padEnd(8, " "),
-      clip(row.number, 14).padEnd(14, " "),
-      clip(row.state, 12).padEnd(12, " "),
-      clip(row.client, 28).padEnd(28, " "),
-      clip(row.dueAt, 12).padEnd(12, " "),
-      clip(row.balance, 10),
-    ].join(" ");
-
-    console.log(line);
-  });
-
-  if (rows.length > visibleRows.length) {
-    console.log(`Showing ${visibleRows.length} of ${rows.length} bills. Use --json for full output.`);
-  }
-
-  if (!options.all && options.nextPageUrl) {
-    console.log("");
-    console.log("More results are available.");
-    console.log("Run again with `--all` or pass `--page-token` from `--json` output.");
-  }
-}
-
-function printBill(bill) {
-  printKeyValueRows([
-    ["ID", bill.id],
-    ["Number", bill.number],
-    ["State", bill.state],
-    ["Type", bill.type],
-    ["Kind", bill.kind],
-    ["Client", readContactName(bill.client)],
-    ["Matter", readFirstMatterLabel(bill)],
-    ["Issued", bill.issued_at],
-    ["Due", bill.due_at],
-    ["Total", formatMoney(bill.total)],
-    ["Balance", formatMoney(bill.balance)],
-    ["Paid", formatMoney(bill.paid)],
-    ["Paid At", bill.paid_at],
-    ["Pending", formatMoney(bill.pending)],
-    ["Due Amount", formatMoney(bill.due)],
-    ["Subject", bill.subject],
-    ["Memo", bill.memo],
-    ["Created", bill.created_at],
-    ["Updated", bill.updated_at],
-  ]);
-}
+const printBillList = createListPrinter(BILL_RESOURCE.display.list);
+const printBill = createDetailPrinter(BILL_RESOURCE.display.get);
 
 const billsList = createListCommand({
   apiPath: BILL_RESOURCE.apiPath,

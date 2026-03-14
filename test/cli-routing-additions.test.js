@@ -18,12 +18,6 @@ function loadCli() {
   };
 
   const { module, restore } = loadWithMocks(path.join(ROOT, "src/cli.js"), {
-    "./commands-activities": {
-      activitiesGet: async () => {},
-      activitiesList: async (options) => {
-        calls.activitiesList.push(options);
-      },
-    },
     "./commands-auth": {
       authLogin: async () => {},
       authRevoke: async () => {},
@@ -33,47 +27,51 @@ function loadCli() {
       setupWizard: async () => {},
       whoAmI: async () => {},
     },
-    "./commands-bills": {
-      billsGet: async (options) => {
-        calls.billsGet.push(options);
+    "./resource-handlers": {
+      getResourceHandler: (resourceMetadata, subcommand) => {
+        const handlers = {
+          activities: {
+            get: async () => {},
+            list: async (options) => {
+              calls.activitiesList.push(options);
+            },
+          },
+          bills: {
+            get: async (options) => {
+              calls.billsGet.push(options);
+            },
+            list: async () => {},
+          },
+          contacts: {
+            get: async (options) => {
+              calls.contactsGet.push(options);
+            },
+            list: async () => {},
+          },
+          matters: {
+            get: async () => {},
+            list: async (options) => {
+              calls.mattersList.push(options);
+            },
+          },
+          "practice-areas": {
+            get: async (options) => {
+              calls.practiceAreasGet.push(options);
+            },
+            list: async () => {},
+          },
+          tasks: {
+            get: async (options) => {
+              calls.tasksGet.push(options);
+            },
+            list: async (options) => {
+              calls.tasksList.push(options);
+            },
+          },
+        };
+
+        return handlers[resourceMetadata?.handlerKey]?.[subcommand] || null;
       },
-      billsList: async () => {},
-    },
-    "./commands-billable-clients": {
-      billableClientsList: async () => {},
-    },
-    "./commands-billable-matters": {
-      billableMattersList: async () => {},
-    },
-    "./commands-contacts": {
-      contactsGet: async (options) => {
-        calls.contactsGet.push(options);
-      },
-      contactsList: async () => {},
-    },
-    "./commands-matters": {
-      mattersGet: async () => {},
-      mattersList: async (options) => {
-        calls.mattersList.push(options);
-      },
-    },
-    "./commands-practice-areas": {
-      practiceAreasGet: async (options) => {
-        calls.practiceAreasGet.push(options);
-      },
-      practiceAreasList: async () => {},
-    },
-    "./commands-tasks": {
-      tasksGet: async (options) => {
-        calls.tasksGet.push(options);
-      },
-      tasksList: async (options) => {
-        calls.tasksList.push(options);
-      },
-    },
-    "./commands-users": {
-      usersGet: async () => {},
-      usersList: async () => {},
     },
   });
 

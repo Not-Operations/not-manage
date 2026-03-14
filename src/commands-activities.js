@@ -1,14 +1,13 @@
 const { fetchResourceById, fetchResourcePage } = require("./clio-api");
 const {
-  clip,
+  createDetailPrinter,
+  createListPrinter,
+} = require("./resource-display");
+const { buildListQueryFromResource } = require("./resource-query-builder");
+const {
   compactQuery,
   fetchPages,
-  formatBoolean,
-  formatMoney,
-  parseLimit,
-  printKeyValueRows,
-  readMatterLabel,
-  readUserName,
+  readHours,
 } = require("./resource-utils");
 const {
   buildSummaryMessage,
@@ -21,122 +20,12 @@ const { getResourceMetadata } = require("./resource-metadata");
 const ACTIVITY_RESOURCE = getResourceMetadata("activities");
 const MATTER_RESOURCE = getResourceMetadata("matters");
 
-function readHours(activity) {
-  const quantityInHours = Number(activity?.quantity_in_hours);
-  if (Number.isFinite(quantityInHours)) {
-    return quantityInHours.toFixed(2);
-  }
-
-  const quantity = Number(activity?.quantity);
-  if (Number.isFinite(quantity)) {
-    return (quantity / 3600).toFixed(2);
-  }
-
-  return "-";
-}
-
 function buildActivityQuery(options) {
-  return compactQuery({
-    activity_description_id: options.activityDescriptionId || undefined,
-    created_since: options.createdSince || undefined,
-    end_date: options.endDate || undefined,
-    fields: options.fields || ACTIVITY_RESOURCE.defaultFields.list,
-    flat_rate:
-      options.flatRate === undefined || options.flatRate === null
-        ? undefined
-        : Boolean(options.flatRate),
-    limit: parseLimit(options.limit),
-    matter_id: options.matterId || undefined,
-    only_unaccounted_for: options.onlyUnaccountedFor ? true : undefined,
-    order: options.order || undefined,
-    page_token: options.pageToken || undefined,
-    query: options.query || undefined,
-    start_date: options.startDate || undefined,
-    status: options.status || undefined,
-    task_id: options.taskId || undefined,
-    type: options.type || undefined,
-    updated_since: options.updatedSince || undefined,
-    user_id: options.userId || undefined,
-  });
+  return buildListQueryFromResource(ACTIVITY_RESOURCE, options, ACTIVITY_RESOURCE.listQuery);
 }
 
 function formatActivityRow(activity) {
-  return {
-    billed: formatBoolean(activity.billed),
-    date: String(activity.date || "-"),
-    hours: readHours(activity),
-    id: String(activity.id || "-"),
-    matter: readMatterLabel(activity.matter),
-    note: String(activity.note || "-"),
-    total: formatMoney(activity.total),
-    type: String(activity.type || "-"),
-  };
-}
-
-function printActivityList(rows, options) {
-  if (rows.length === 0) {
-    console.log("No activities found for the selected filters.");
-    return;
-  }
-
-  const visibleRows = rows.slice(0, 50);
-  console.log("ID       TYPE        DATE       HOURS TOTAL      BILLED MATTER               NOTE");
-  console.log("-------- ----------- ---------- ----- ---------- ------ -------------------- ------------------------------");
-
-  visibleRows.forEach((row) => {
-    const line = [
-      clip(row.id, 8).padEnd(8, " "),
-      clip(row.type, 11).padEnd(11, " "),
-      clip(row.date, 10).padEnd(10, " "),
-      clip(row.hours, 5).padEnd(5, " "),
-      clip(row.total, 10).padEnd(10, " "),
-      clip(row.billed, 6).padEnd(6, " "),
-      clip(row.matter, 20).padEnd(20, " "),
-      clip(row.note, 30),
-    ].join(" ");
-
-    console.log(line);
-  });
-
-  if (rows.length > visibleRows.length) {
-    console.log(`Showing ${visibleRows.length} of ${rows.length} activities. Use --json for full output.`);
-  }
-
-  if (!options.all && options.nextPageUrl) {
-    console.log("");
-    console.log("More results are available.");
-    if (options.pageTokenSupported === false) {
-      console.log("Run again with `--all` to fetch every matching activity.");
-      return;
-    }
-    console.log("Run again with `--all` or pass `--page-token` from `--json` output.");
-  }
-}
-
-function printActivity(activity) {
-  printKeyValueRows([
-    ["ID", activity.id],
-    ["Type", activity.type],
-    ["Date", activity.date],
-    ["Hours", readHours(activity)],
-    ["Price", formatMoney(activity.price)],
-    ["Total", formatMoney(activity.total)],
-    ["Billed", formatBoolean(activity.billed)],
-    ["On Bill", formatBoolean(activity.on_bill)],
-    ["Non-Billable", formatBoolean(activity.non_billable)],
-    ["No Charge", formatBoolean(activity.no_charge)],
-    ["Flat Rate", formatBoolean(activity.flat_rate)],
-    ["Contingency Fee", formatBoolean(activity.contingency_fee)],
-    ["User", readUserName(activity.user)],
-    ["Matter", readMatterLabel(activity.matter)],
-    ["Activity Description", activity.activity_description?.name],
-    ["Bill", activity.bill?.number],
-    ["Bill State", activity.bill?.state],
-    ["Reference", activity.reference],
-    ["Note", activity.note],
-    ["Created", activity.created_at],
-    ["Updated", activity.updated_at],
-  ]);
+  return ACTIVITY_RESOURCE.display.list.formatRow(activity);
 }
 
 async function fetchMatterIdsForClient(config, accessToken, clientId) {
@@ -301,6 +190,9 @@ function printActivitySummary({ result, rows }) {
     )
   );
 }
+
+const printActivityList = createListPrinter(ACTIVITY_RESOURCE.display.list);
+const printActivity = createDetailPrinter(ACTIVITY_RESOURCE.display.get);
 
 const activitiesList = createListCommand({
   apiPath: ACTIVITY_RESOURCE.apiPath,

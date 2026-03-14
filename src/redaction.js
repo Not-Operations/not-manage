@@ -400,6 +400,10 @@ function isMatterLabelContext(policy, path, key) {
   return path[path.length - 1] === "matter" && policy.matterLabelFields.has(key);
 }
 
+function isLabelContext(policy, key) {
+  return policy.labelFields.has(key);
+}
+
 function redactStringValue(
   policy,
   text,
@@ -414,7 +418,7 @@ function redactStringValue(
   output = replaceKnownSensitiveValues(output, replacements);
   output = redactPatternPii(output);
 
-  if (isMatterLabelContext(policy, path, key)) {
+  if (isMatterLabelContext(policy, path, key) || isLabelContext(policy, key)) {
     output = replaceMatterLabelDerivedNames(output, derivedLabelReplacements);
   }
 

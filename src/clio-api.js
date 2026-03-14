@@ -5,6 +5,10 @@ function createError(message, responseText) {
   return new Error(`${message}.${suffix}`.trim());
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 async function postForm(url, formFields, headers = {}) {
   const response = await fetch(url, {
     method: "POST",
@@ -136,21 +140,45 @@ function parseTrustedApiUrl(config, url, expectedPathPrefix = "/api/v4/") {
 function buildUrlWithQuery(baseUrl, query = {}) {
   const url = new URL(baseUrl);
 
-  Object.entries(query).forEach(([key, value]) => {
+  function appendQueryValue(key, value) {
     if (value === undefined || value === null || value === "") {
       return;
     }
 
     if (Array.isArray(value)) {
       value.forEach((item) => {
-        if (item !== undefined && item !== null && item !== "") {
-          url.searchParams.append(key, String(item));
-        }
+        appendQueryValue(key, item);
       });
       return;
     }
 
-    url.searchParams.set(key, String(value));
+    if (isPlainObject(value)) {
+      Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+        if (nestedValue === undefined || nestedValue === null || nestedValue === "") {
+          return;
+        }
+
+        const compositeKey = `${key}[${nestedKey}]`;
+        if (Array.isArray(nestedValue)) {
+          const serialized = nestedValue
+            .filter((item) => item !== undefined && item !== null && item !== "")
+            .map((item) => String(item));
+          if (serialized.length > 0) {
+            url.searchParams.append(compositeKey, `[${serialized.join(", ")}]`);
+          }
+          return;
+        }
+
+        appendQueryValue(compositeKey, nestedValue);
+      });
+      return;
+    }
+
+    url.searchParams.append(key, String(value));
+  }
+
+  Object.entries(query).forEach(([key, value]) => {
+    appendQueryValue(key, value);
   });
 
   return url.toString();
@@ -382,6 +410,7 @@ module.exports = {
   fetchWhoAmI,
   getValidAccessToken,
   __private: {
+    buildUrlWithQuery,
     parseTrustedApiUrl,
   },
 };

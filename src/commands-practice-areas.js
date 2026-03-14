@@ -1,10 +1,9 @@
 const { fetchResourceById } = require("./clio-api");
 const {
-  clip,
-  compactQuery,
-  parseLimit,
-  printKeyValueRows,
-} = require("./resource-utils");
+  createDetailPrinter,
+  createListPrinter,
+} = require("./resource-display");
+const { buildListQueryFromResource } = require("./resource-query-builder");
 const {
   createGetCommand,
   createListCommand,
@@ -17,16 +16,11 @@ const PRACTICE_AREA_RESOURCE = getResourceMetadata("practice-areas");
 const MATTER_LOOKUP_FIELDS = "id,practice_area{id}";
 
 function buildPracticeAreaQuery(options) {
-  return compactQuery({
-    code: options.code || undefined,
-    created_since: options.createdSince || undefined,
-    fields: options.fields || PRACTICE_AREA_RESOURCE.defaultFields.list,
-    limit: parseLimit(options.limit),
-    name: options.name || undefined,
-    order: options.order || undefined,
-    page_token: options.pageToken || undefined,
-    updated_since: options.updatedSince || undefined,
-  });
+  return buildListQueryFromResource(
+    PRACTICE_AREA_RESOURCE,
+    options,
+    PRACTICE_AREA_RESOURCE.listQuery
+  );
 }
 
 function matchesTimestampOnOrAfter(value, threshold) {
@@ -120,57 +114,7 @@ async function practiceAreasListForMatter(config, accessToken, options = {}) {
 }
 
 function formatPracticeAreaRow(practiceArea) {
-  return {
-    category: String(practiceArea.category || "-"),
-    code: String(practiceArea.code || "-"),
-    id: String(practiceArea.id || "-"),
-    name: String(practiceArea.name || "-"),
-  };
-}
-
-function printPracticeAreaList(rows, options) {
-  if (rows.length === 0) {
-    console.log("No practice areas found for the selected filters.");
-    return;
-  }
-
-  const visibleRows = rows.slice(0, 50);
-  console.log("ID       CODE         NAME                         CATEGORY");
-  console.log("-------- ------------ ---------------------------- ------------------------------");
-
-  visibleRows.forEach((row) => {
-    const line = [
-      clip(row.id, 8).padEnd(8, " "),
-      clip(row.code, 12).padEnd(12, " "),
-      clip(row.name, 28).padEnd(28, " "),
-      clip(row.category, 30),
-    ].join(" ");
-
-    console.log(line);
-  });
-
-  if (rows.length > visibleRows.length) {
-    console.log(
-      `Showing ${visibleRows.length} of ${rows.length} practice areas. Use --json for full output.`
-    );
-  }
-
-  if (!options.all && options.nextPageUrl) {
-    console.log("");
-    console.log("More results are available.");
-    console.log("Run again with `--all` or pass `--page-token` from `--json` output.");
-  }
-}
-
-function printPracticeArea(practiceArea) {
-  printKeyValueRows([
-    ["ID", practiceArea.id],
-    ["Code", practiceArea.code],
-    ["Name", practiceArea.name],
-    ["Category", practiceArea.category],
-    ["Created", practiceArea.created_at],
-    ["Updated", practiceArea.updated_at],
-  ]);
+  return PRACTICE_AREA_RESOURCE.display.list.formatRow(practiceArea);
 }
 
 async function fetchPracticeAreaListResult({ accessToken, apiPath, config, options, query }) {
@@ -186,6 +130,9 @@ async function fetchPracticeAreaListResult({ accessToken, apiPath, config, optio
     query,
   });
 }
+
+const printPracticeAreaList = createListPrinter(PRACTICE_AREA_RESOURCE.display.list);
+const printPracticeArea = createDetailPrinter(PRACTICE_AREA_RESOURCE.display.get);
 
 const practiceAreasList = createListCommand({
   apiPath: PRACTICE_AREA_RESOURCE.apiPath,

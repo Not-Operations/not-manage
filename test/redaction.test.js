@@ -139,6 +139,71 @@ test("redactPayload does not split company client names into matter-label replac
   assert.equal(output.matter.display_number, "00341 - LLC - Contract");
 });
 
+test("redactPayload expands coverage for body/detail/content fields in messaging-style resources", () => {
+  const payload = {
+    body: "Email John Smith before Dana Doyle reviews the filing.",
+    detail: "John Smith called again.",
+    content: "Client John Smith attached records.",
+    author: {
+      name: "Dana Doyle",
+      email: "dana@example.com",
+    },
+    contact: {
+      name: "John Smith",
+      type: "Person",
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "conversation-message");
+
+  assert.equal(
+    output.body,
+    "Email [REDACTED_NAME] before Dana Doyle reviews the filing."
+  );
+  assert.equal(output.detail, "[REDACTED_NAME] called again.");
+  assert.equal(output.content, "Client [REDACTED_NAME] attached records.");
+  assert.deepStrictEqual(output.author, {
+    name: "Dana Doyle",
+    email: "dana@example.com",
+  });
+});
+
+test("redactPayload applies surname-based label redaction to names, filenames, and summaries", () => {
+  const payload = {
+    name: "Smith follow-up",
+    file_name: "Smith-medical-records.pdf",
+    summary: "Smith hearing prep",
+    matter: {
+      client: {
+        name: "Jane Smith",
+        type: "Person",
+      },
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "document");
+
+  assert.equal(output.name, "[REDACTED_NAME] follow-up");
+  assert.equal(output.file_name, "[REDACTED_NAME]-medical-records.pdf");
+  assert.equal(output.summary, "[REDACTED_NAME] hearing prep");
+});
+
+test("redactPayload treats display_value as a label-like field for custom fields", () => {
+  const payload = {
+    display_value: "Smith - VIP",
+    matter: {
+      client: {
+        name: "Jane Smith",
+        type: "Person",
+      },
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "custom-field");
+
+  assert.equal(output.display_value, "[REDACTED_NAME] - VIP");
+});
+
 test("maybeRedactPayload only transforms the data envelope", () => {
   const payload = {
     data: {

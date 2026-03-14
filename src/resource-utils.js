@@ -65,6 +65,50 @@ function readMatterLabel(matter) {
   return matter.display_number || matter.number || matter.description || String(matter.id || "-");
 }
 
+function readStatus(status) {
+  if (!status) {
+    return "-";
+  }
+
+  if (typeof status === "string") {
+    return status;
+  }
+
+  return status.name || status.value || status.state || "-";
+}
+
+function readHours(activity) {
+  const quantityInHours = Number(activity?.quantity_in_hours);
+  if (Number.isFinite(quantityInHours)) {
+    return quantityInHours.toFixed(2);
+  }
+
+  const quantity = Number(activity?.quantity);
+  if (Number.isFinite(quantity)) {
+    return (quantity / 3600).toFixed(2);
+  }
+
+  return "-";
+}
+
+function readRoleList(user) {
+  const roles = Array.isArray(user?.roles) ? user.roles : [];
+  if (roles.length === 0) {
+    return "-";
+  }
+
+  return roles.join(", ");
+}
+
+function readFirstMatterLabel(record) {
+  const matters = Array.isArray(record?.matters) ? record.matters : [];
+  if (matters.length === 0) {
+    return "-";
+  }
+
+  return readMatterLabel(matters[0]);
+}
+
 function formatBoolean(value) {
   if (value === undefined || value === null) {
     return "-";
@@ -136,6 +180,10 @@ module.exports = {
   parseLimit,
   printKeyValueRows,
   readContactName,
+  readFirstMatterLabel,
+  readHours,
   readMatterLabel,
+  readRoleList,
+  readStatus,
   readUserName,
 };

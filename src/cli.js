@@ -7,59 +7,14 @@ const {
   setupWizard,
   whoAmI,
 } = require("./commands-auth");
-const { activitiesGet, activitiesList } = require("./commands-activities");
-const { billableClientsList } = require("./commands-billable-clients");
-const { billableMattersList } = require("./commands-billable-matters");
-const { billsGet, billsList } = require("./commands-bills");
-const { contactsGet, contactsList } = require("./commands-contacts");
-const { mattersGet, mattersList } = require("./commands-matters");
-const { practiceAreasGet, practiceAreasList } = require("./commands-practice-areas");
-const { tasksGet, tasksList } = require("./commands-tasks");
-const { usersGet, usersList } = require("./commands-users");
 const { hasFlag, parseOptions, readBooleanOption, readCommandOptions } = require("./cli-options");
+const { getResourceHandler } = require("./resource-handlers");
 const {
   RESOURCE_ORDER,
   getResourceMetadata,
   normalizeResourceCommand,
 } = require("./resource-metadata");
 const { version } = require("../package.json");
-
-const RESOURCE_HANDLERS = {
-  activities: {
-    get: activitiesGet,
-    list: activitiesList,
-  },
-  "billable-clients": {
-    list: billableClientsList,
-  },
-  "billable-matters": {
-    list: billableMattersList,
-  },
-  bills: {
-    get: billsGet,
-    list: billsList,
-  },
-  contacts: {
-    get: contactsGet,
-    list: contactsList,
-  },
-  matters: {
-    get: mattersGet,
-    list: mattersList,
-  },
-  "practice-areas": {
-    get: practiceAreasGet,
-    list: practiceAreasList,
-  },
-  tasks: {
-    get: tasksGet,
-    list: tasksList,
-  },
-  users: {
-    get: usersGet,
-    list: usersList,
-  },
-};
 
 function maybePrintDefaultFields(command, sub, optionValues) {
   if (optionValues.fields !== true) {
@@ -231,9 +186,7 @@ async function run(args) {
   }
 
   const resourceMetadata = getResourceMetadata(command);
-  const handler = resourceMetadata
-    ? RESOURCE_HANDLERS[resourceMetadata.handlerKey]?.[sub]
-    : null;
+  const handler = getResourceHandler(resourceMetadata, sub);
 
   if (resourceMetadata && handler) {
     warnAboutRedaction(resourceMetadata, sub, optionValues, redacted);
