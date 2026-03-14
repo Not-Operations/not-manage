@@ -131,6 +131,26 @@ Plural commands still work. Singular aliases are accepted for the single-record 
 
 Every data command also accepts `--fields <comma-separated-list>` to override the default response shape. If you pass `--fields` with no value, the CLI prints the current default field list for that command.
 
+## Additional read-only resources
+
+`not-manage --help` now also includes these read-only resources:
+
+- `calendar-entries list|get`
+- `reminders list|get`
+- `communications list|get`
+- `conversations list|get`
+- `conversation-messages list|get`
+- `notes list|get`
+- `custom-fields list|get`
+- `outstanding-client-balances list`
+- `matter-dockets list|get`
+- `my-events list`
+
+Two list commands have required filters:
+
+- `conversation-messages list` requires `--conversation-id`
+- `notes list` requires `--type Matter` or `--type Contact`
+
 ## Read-only examples
 
 ```bash
@@ -164,6 +184,14 @@ not-manage user get 123
 not-manage practice-areas list --name "Family"
 not-manage practice-areas list --matter-id 456
 not-manage practice-area get 45
+
+not-manage calendar-entries list --from 2026-03-01T00:00:00Z --to 2026-03-31T23:59:59Z
+not-manage reminders list --state pending
+not-manage notes list --type Matter --limit 25
+not-manage conversation-messages list --conversation-id 123
+not-manage outstanding-client-balances list --limit 25
+not-manage matter-dockets list --matter-id 456
+not-manage my-events list --limit 25
 
 not-manage billable-matters list --client-id 999
 not-manage billable-clients list --start-date 2026-03-01
