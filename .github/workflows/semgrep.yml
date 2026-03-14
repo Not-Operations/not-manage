@@ -22,7 +22,7 @@ jobs:
       image: semgrep/semgrep
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run Semgrep Community Edition scan
         run: semgrep scan --config auto .
