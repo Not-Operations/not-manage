@@ -1,6 +1,6 @@
 {
   "name": "not-manage",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Unofficial command-line tool for Clio Manage integrations",
   "license": "Apache-2.0",
   "private": false,
@@ -39,7 +39,6 @@
     "docs:generate": "node scripts/generate-readme-cli-reference.js",
     "hooks:install": "node scripts/install-git-hooks.js",
     "pack:check": "npm pack --dry-run",
-    "postinstall": "node src/postinstall.js",
     "seed:handbook-imports": "node scripts/generate-handbook-import-csvs.js",
     "seed:historical": "node scripts/seed-historical-data.js",
     "smoke:live": "node scripts/smoke-read-only-live.js",
