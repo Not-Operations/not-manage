@@ -22,3 +22,28 @@ test("buildUrlWithQuery serializes repeated array filters and nested object filt
   assert.equal(url.searchParams.get("custom_field_values[2002]"), "[>=45, <=50]");
   assert.equal(url.searchParams.get("fields"), "id,description");
 });
+
+test("parseTrustedApiUrl only allows expected https Clio API URLs", () => {
+  const config = { host: "app.clio.com" };
+
+  const trusted = __private.parseTrustedApiUrl(
+    config,
+    "https://app.clio.com/api/v4/contacts.json?page=2"
+  );
+  assert.equal(trusted, "https://app.clio.com/api/v4/contacts.json?page=2");
+
+  assert.throws(
+    () => __private.parseTrustedApiUrl(config, "http://app.clio.com/api/v4/contacts.json"),
+    /Refusing to call a non-HTTPS URL/
+  );
+
+  assert.throws(
+    () => __private.parseTrustedApiUrl(config, "https://evil.example/api/v4/contacts.json"),
+    /unexpected host/
+  );
+
+  assert.throws(
+    () => __private.parseTrustedApiUrl(config, "https://app.clio.com/oauth/token"),
+    /unexpected Clio API path/
+  );
+});

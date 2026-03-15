@@ -16,13 +16,18 @@ This project is a terminal CLI from [Not Operations](https://notoperations.com/l
 npm i -g not-manage && not-manage
 ```
 
-This is the recommended install flow because npm does not always show postinstall output consistently.
+The package does not run install-time scripts. Setup starts when you launch `not-manage`.
 
 What happens next:
 
 - first-time setup: `not-manage` starts guided setup
 - returning setup: `not-manage` opens normally and can verify the saved connection
-- install/setup warning: the CLI reminds you that output may contain confidential client data and that redaction is best-effort only
+- setup warning: the CLI reminds you that output may contain confidential client data and that redaction is best-effort only
+
+Network behavior:
+
+- the CLI uses HTTPS requests to Clio API/auth hosts for your selected region (`app.clio.com`, `ca.app.clio.com`, `eu.app.clio.com`, or `au.app.clio.com`)
+- during OAuth login it also accepts a local loopback callback on `127.0.0.1`
 
 You can also run the command separately after install:
 
@@ -36,11 +41,6 @@ or:
 not-manage setup
 ```
 
-To suppress the install-time prompt entirely:
-
-```bash
-NOT_MANAGE_SKIP_POSTINSTALL_SETUP=1 npm i -g not-manage && not-manage
-```
 
 For local development:
 
