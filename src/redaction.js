@@ -79,6 +79,11 @@ const PLACEHOLDERS = {
   taxId: "[REDACTED_TAX_ID]",
 };
 const PERSON_NAME_SUFFIXES = new Set(["esq", "ii", "iii", "iv", "jr", "sr"]);
+const COMPANY_NOISE_TOKENS = new Set([
+  "and", "co", "company", "corp", "corporation", "dba", "group",
+  "inc", "incorporated", "limited", "llc", "llp", "lp", "ltd",
+  "of", "pa", "pc", "plc", "pllc", "the",
+]);
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -245,6 +250,19 @@ function derivePersonSurname(name) {
   return index > 0 ? tokens[index] : "";
 }
 
+function deriveCompanyNameTokens(name) {
+  const tokens = normalizeString(name)
+    .split(/[\s&,]+/)
+    .map((token) => token.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, ""))
+    .filter(Boolean);
+
+  return tokens.filter(
+    (token) =>
+      token.length >= 3 &&
+      !COMPANY_NOISE_TOKENS.has(token.toLowerCase())
+  );
+}
+
 function collectPersonClientLabelReplacements(
   value,
   policy,
@@ -276,6 +294,12 @@ function collectPersonClientLabelReplacements(
       derivePersonSurname(value.name),
       PLACEHOLDERS.name
     );
+  }
+
+  if (clientContext && value.type === "Company") {
+    deriveCompanyNameTokens(value.name).forEach((token) => {
+      pushReplacement(replacements, dedupe, token, PLACEHOLDERS.name);
+    });
   }
 
   Object.entries(value).forEach(([key, child]) => {

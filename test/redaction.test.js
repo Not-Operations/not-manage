@@ -123,7 +123,23 @@ test("redactPayload uses person client surnames to redact task matter labels", (
   });
 });
 
-test("redactPayload does not split company client names into matter-label replacements", () => {
+test("redactPayload extracts significant Company client name tokens for matter label redaction", () => {
+  const payload = {
+    matter: {
+      display_number: "00341 - Smith - Contract",
+      client: {
+        name: "Smith & Associates LLC",
+        type: "Company",
+      },
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "task");
+
+  assert.equal(output.matter.display_number, "00341 - [REDACTED_NAME] - Contract");
+});
+
+test("redactPayload does not use short Company noise tokens for matter-label replacements", () => {
   const payload = {
     matter: {
       display_number: "00341 - LLC - Contract",
