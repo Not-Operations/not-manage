@@ -71,6 +71,7 @@ const NAME_HEURISTIC_EXCLUDED_TOKENS = new Set([
 ]);
 
 const PLACEHOLDERS = {
+  creditCard: "[REDACTED_CREDIT_CARD]",
   email: "[REDACTED_EMAIL]",
   name: "[REDACTED_NAME]",
   phone: "[REDACTED_PHONE]",
@@ -116,12 +117,18 @@ function collectContactLikeReplacements(node, replacements, dedupe) {
 
   pushReplacement(replacements, dedupe, node.name, PLACEHOLDERS.name);
 
-  const fullName = [node.first_name, node.last_name]
-    .map((value) => normalizeString(value))
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  const firstName = normalizeString(node.first_name);
+  const lastName = normalizeString(node.last_name);
+
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   pushReplacement(replacements, dedupe, fullName, PLACEHOLDERS.name);
+
+  if (lastName && lastName.length >= 2) {
+    pushReplacement(replacements, dedupe, lastName, PLACEHOLDERS.name);
+  }
+  if (firstName && firstName.length >= 2) {
+    pushReplacement(replacements, dedupe, firstName, PLACEHOLDERS.name);
+  }
 
   EMAIL_FIELDS.forEach((field) => {
     pushReplacement(replacements, dedupe, node[field], PLACEHOLDERS.email);
@@ -304,8 +311,16 @@ function redactPatternPii(text) {
     /\b(?:\+?1[-.\s]*)?(?:\(\d{3}\)|\d{3})[-.\s]*\d{3}[-.\s]*\d{4}\b/g,
     PLACEHOLDERS.phone
   );
-  output = output.replace(/\b\d{3}-\d{2}-\d{4}\b/g, PLACEHOLDERS.ssn);
+  output = output.replace(/\b\d{3}[-\s]\d{2}[-\s]\d{4}\b/g, PLACEHOLDERS.ssn);
   output = output.replace(/\b\d{2}-\d{7}\b/g, PLACEHOLDERS.taxId);
+  output = output.replace(
+    /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g,
+    PLACEHOLDERS.creditCard
+  );
+  output = output.replace(
+    /\b3[47]\d{2}[-\s]?\d{6}[-\s]?\d{5}\b/g,
+    PLACEHOLDERS.creditCard
+  );
 
   return output;
 }

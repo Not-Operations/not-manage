@@ -47,3 +47,20 @@ test("parseTrustedApiUrl only allows expected https Clio API URLs", () => {
     /unexpected Clio API path/
   );
 });
+
+test("sanitizeUrlForError strips query parameters from URLs", () => {
+  assert.equal(
+    __private.sanitizeUrlForError("https://app.clio.com/api/v4/contacts.json?fields=name,email&query=Smith"),
+    "https://app.clio.com/api/v4/contacts.json?[query redacted]"
+  );
+
+  assert.equal(
+    __private.sanitizeUrlForError("https://app.clio.com/api/v4/contacts.json"),
+    "https://app.clio.com/api/v4/contacts.json"
+  );
+
+  assert.equal(
+    __private.sanitizeUrlForError("not a url"),
+    "[invalid URL]"
+  );
+});

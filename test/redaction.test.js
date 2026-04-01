@@ -204,6 +204,65 @@ test("redactPayload treats display_value as a label-like field for custom fields
   assert.equal(output.display_value, "[REDACTED_NAME] - VIP");
 });
 
+test("redactPayload redacts individual first and last names from free text", () => {
+  const payload = {
+    description: "Spoke with Jane about the case. Smith confirmed the details.",
+    client: {
+      first_name: "Jane",
+      last_name: "Smith",
+      primary_email_address: "jane@example.test",
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "matter");
+
+  assert.equal(
+    output.description,
+    "Spoke with [REDACTED_NAME] about the case. [REDACTED_NAME] confirmed the details."
+  );
+});
+
+test("redactPayload redacts credit card numbers in free text", () => {
+  const payload = {
+    memo: "Card on file: 4111-1111-1111-1111 and Amex 3782 822463 10005.",
+  };
+
+  const output = redaction.__private.redactPayload(payload, "bill");
+
+  assert.equal(
+    output.memo,
+    "Card on file: [REDACTED_CREDIT_CARD] and Amex [REDACTED_CREDIT_CARD]."
+  );
+});
+
+test("redactPayload redacts space-separated SSNs", () => {
+  const payload = {
+    memo: "SSN on record: 123 45 6789.",
+  };
+
+  const output = redaction.__private.redactPayload(payload, "bill");
+
+  assert.equal(output.memo, "SSN on record: [REDACTED_SSN].");
+});
+
+test("redactPayload does not collect single-character name parts as replacements", () => {
+  const payload = {
+    description: "Filed a motion today.",
+    client: {
+      first_name: "J",
+      last_name: "Smith",
+      primary_email_address: "j.smith@example.test",
+    },
+  };
+
+  const output = redaction.__private.redactPayload(payload, "matter");
+
+  assert.ok(
+    !output.description.includes("J motion"),
+    "Single-character first name should not cause spurious replacements"
+  );
+});
+
 test("maybeRedactPayload only transforms the data envelope", () => {
   const payload = {
     data: {
