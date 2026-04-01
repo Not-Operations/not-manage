@@ -172,7 +172,7 @@ function collectSecurityWarnings(config, tokenSet) {
 
 function printSetupBanner() {
   console.log(bold("not-manage setup"));
-  console.log(dim("Connect this CLI to your Clio developer app."));
+  console.log(dim("Connect not-manage to your Clio account so you can get your Clio data into an AI."));
 }
 
 async function maybeOpenDeveloperPortal(rl, region) {

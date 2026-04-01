@@ -760,7 +760,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     const output = logs.join("\n");
 
     assert.match(output, /not-manage setup/);
-    assert.match(output, /Connect this CLI to your Clio developer app/);
+    assert.match(output, /Connect not-manage to your Clio account/);
     assert.match(output, /Output may contain confidential client data/);
     assert.match(output, /Redaction .* is best-effort\. Review all output before sharing/);
     assert.ok(output.includes(REGIONS.ca.developerPortalUrl));
