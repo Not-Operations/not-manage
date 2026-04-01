@@ -747,9 +747,6 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     if (label === "App Secret / Client Secret") {
       return "client-secret";
     }
-    if (label === "Custom redirect URI (Enter to keep default)") {
-      return "";
-    }
     throw new Error(`Unexpected prompt label: ${label}`);
   });
 
@@ -781,7 +778,6 @@ test("authSetup opens the selected regional developer portal only after Enter", 
         "Press Enter to open the developer portal, or type skip",
         "App Key / Client ID",
         "App Secret / Client Secret",
-        "Custom redirect URI (Enter to keep default)",
       ]
     );
     assert.deepStrictEqual(authHarness.savedConfig, {
@@ -814,9 +810,6 @@ test("authSetup does not open the browser when the user types skip", async () =>
     }
     if (label === "App Secret / Client Secret") {
       return "client-secret";
-    }
-    if (label === "Custom redirect URI (Enter to keep default)") {
-      return "";
     }
     throw new Error(`Unexpected prompt label: ${label}`);
   });
@@ -927,9 +920,6 @@ test("setupWizard passes the config it just saved into authLogin", async () => {
         }
         if (label === "App Secret / Client Secret") {
           return savedConfig.clientSecret;
-        }
-        if (label === "Custom redirect URI (Enter to keep default)") {
-          return "";
         }
         throw new Error(`Unexpected prompt label: ${label}`);
       },

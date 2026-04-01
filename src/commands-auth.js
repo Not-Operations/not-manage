@@ -24,7 +24,7 @@ const {
   getConfig,
   getTokenSet,
   normalizeRegion,
-  parseRedirectUri,
+
   saveConfig,
   saveTokenSet,
 } = require("./store");
@@ -275,16 +275,11 @@ async function authSetup(options = {}) {
       throw new Error("App Secret / Client Secret is required.");
     }
 
-    const redirectUriOverride = await ask(
-      rl,
-      "Custom redirect URI (Enter to keep default)"
-    );
-    const redirectUri = parseRedirectUri(redirectUriOverride || DEFAULT_REDIRECT_URI);
     return {
       region,
       clientId,
       clientSecret,
-      redirectUri,
+      redirectUri: DEFAULT_REDIRECT_URI,
     };
   });
 
