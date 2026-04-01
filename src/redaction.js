@@ -232,11 +232,15 @@ function collectSafeIdentityNames(
   return preserved;
 }
 
-function derivePersonSurname(name) {
-  const tokens = normalizeString(name)
-    .split(/\s+/)
+function tokenizeName(name, separator = /\s+/) {
+  return normalizeString(name)
+    .split(separator)
     .map((token) => token.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, ""))
     .filter(Boolean);
+}
+
+function derivePersonSurname(name) {
+  const tokens = tokenizeName(name);
 
   if (tokens.length < 2) {
     return "";
@@ -251,19 +255,14 @@ function derivePersonSurname(name) {
 }
 
 function deriveCompanyNameTokens(name) {
-  const tokens = normalizeString(name)
-    .split(/[\s&,]+/)
-    .map((token) => token.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, ""))
-    .filter(Boolean);
-
-  return tokens.filter(
+  return tokenizeName(name, /[\s&,]+/).filter(
     (token) =>
       token.length >= 3 &&
       !COMPANY_NOISE_TOKENS.has(token.toLowerCase())
   );
 }
 
-function collectPersonClientLabelReplacements(
+function collectClientLabelReplacements(
   value,
   policy,
   clientContext = false,
@@ -272,7 +271,7 @@ function collectPersonClientLabelReplacements(
 ) {
   if (Array.isArray(value)) {
     value.forEach((item) => {
-      collectPersonClientLabelReplacements(
+      collectClientLabelReplacements(
         item,
         policy,
         clientContext,
@@ -303,7 +302,7 @@ function collectPersonClientLabelReplacements(
   }
 
   Object.entries(value).forEach(([key, child]) => {
-    collectPersonClientLabelReplacements(
+    collectClientLabelReplacements(
       child,
       policy,
       clientContext || policy.clientObjectKeys.has(key),
@@ -315,14 +314,19 @@ function collectPersonClientLabelReplacements(
   return replacements;
 }
 
-function replaceKnownSensitiveValues(text, replacements) {
+function applyReplacements(text, replacements, wordBoundary = false) {
   return replacements
     .slice()
     .sort((left, right) => right.value.length - left.value.length)
     .reduce((output, replacement) => {
-      const matcher = new RegExp(escapeRegExp(replacement.value), "gi");
-      return output.replace(matcher, replacement.placeholder);
-    }, text);
+      const escaped = escapeRegExp(replacement.value);
+      const pattern = wordBoundary ? `\\b${escaped}\\b` : escaped;
+      return output.replace(new RegExp(pattern, "gi"), replacement.placeholder);
+    }, String(text));
+}
+
+function replaceKnownSensitiveValues(text, replacements) {
+  return applyReplacements(text, replacements);
 }
 
 function redactPatternPii(text) {
@@ -426,13 +430,7 @@ function redactLikelyBareNames(text, preservedNames) {
 }
 
 function replaceMatterLabelDerivedNames(text, replacements) {
-  return replacements
-    .slice()
-    .sort((left, right) => right.value.length - left.value.length)
-    .reduce((output, replacement) => {
-      const matcher = new RegExp(`\\b${escapeRegExp(replacement.value)}\\b`, "gi");
-      return output.replace(matcher, replacement.placeholder);
-    }, String(text));
+  return applyReplacements(text, replacements, true);
 }
 
 function isMatterLabelContext(policy, path, key) {
@@ -555,7 +553,7 @@ function redactValue(
 function redactPayload(value, resourceType) {
   const policy = getRedactionPolicy(resourceType);
   const replacements = collectSensitiveReplacements(value, resourceType);
-  const derivedLabelReplacements = collectPersonClientLabelReplacements(value, policy);
+  const derivedLabelReplacements = collectClientLabelReplacements(value, policy);
   const preservedNames = collectSafeIdentityNames(
     value,
     policy,
@@ -596,7 +594,7 @@ module.exports = {
   maybeRedactData,
   maybeRedactPayload,
   __private: {
-    collectPersonClientLabelReplacements,
+    collectClientLabelReplacements,
     collectSafeIdentityNames,
     derivePersonSurname,
     redactLikelyBareNames,

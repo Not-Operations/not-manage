@@ -75,6 +75,8 @@ If a fix is not ready inside the target window, the maintainers should publish a
 - Clio data is fetched directly from Clio to the local machine.
 - OAuth credentials and tokens are stored in the OS keychain.
 - Redaction reduces risk but is best-effort only and must not be treated as a guarantee.
+- Redaction covers structured PII fields, individual name parts, pattern-based detection (emails, phones, SSNs, tax IDs, credit card numbers), client-derived matter label replacement, and heuristic bare-name detection in free text.
+- API error messages are sanitized to strip URL query parameters that may contain PII.
 
 ## Examples of security issues in scope
 
