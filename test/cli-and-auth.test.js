@@ -771,7 +771,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     assert.match(output, /Add this redirect URI/);
     assert.match(output, /Copy the App Key and App Secret back here/);
     assert.ok(output.includes(DEFAULT_REDIRECT_URI));
-    assert.match(output, /Saved to keychain/);
+    assert.match(output, /securely saved on your local machine in the keychain/);
     assert.deepStrictEqual(authHarness.openCalls, [REGIONS.ca.developerPortalUrl]);
     assert.deepStrictEqual(
       authHarness.promptLabels.map((entry) => entry.label),

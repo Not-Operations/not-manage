@@ -292,7 +292,7 @@ async function authSetup(options = {}) {
   await clearTokenSet();
 
   console.log("");
-  console.log(bold("Saved to keychain."));
+  console.log(bold("Your credentials have been securely saved on your local machine in the keychain."));
   console.log(dim(`Region: ${saved.region} (${REGIONS[saved.region].label})`));
   console.log("");
   printSetupLinks(saved.region, saved.redirectUri);
