@@ -726,17 +726,17 @@ test("authSetup opens the selected regional developer portal only after Enter", 
       return "ca";
     }
     if (
-      label === "Press Enter to open the developer portal now, or type skip to continue here"
+      label === "Press Enter to open the developer portal, or type skip"
     ) {
       return fallback;
     }
-    if (label === "App Key / Client ID (from your Clio developer app)") {
+    if (label === "App Key / Client ID") {
       return "client-id";
     }
-    if (label === "App Secret / Client Secret (from the same Clio app)") {
+    if (label === "App Secret / Client Secret") {
       return "client-secret";
     }
-    if (label === "Custom redirect URI override (optional; press Enter to keep the default)") {
+    if (label === "Custom redirect URI (Enter to keep default)") {
       return "";
     }
     throw new Error(`Unexpected prompt label: ${label}`);
@@ -748,43 +748,29 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     );
     const output = logs.join("\n");
 
-    assert.match(output, /This setup is for developers who are connecting the CLI to their own Clio app/);
-    assert.match(output, /If this is your first time doing that, this guide will walk you through it/);
-    assert.match(output, /Confidentiality notice:/);
-    assert.match(output, /Review all output before sharing it with AI tools, tickets, chats, or other third parties/);
-    assert.match(output, /WELCOME TO NOT MANAGE/);
-    assert.match(output, /Setup flow:/);
-    assert.match(output, /Open your Clio developer app, or create one if you do not have one yet/);
-    assert.match(output, /Clio app form guide:/);
-    assert.match(output, /Required:/);
-    assert.match(output, /Website URL: use your firm website, company site, or GitHub repo/);
-    assert.match(output, /Do not put the local callback URL in Website URL/);
-    assert.match(output, /select only the permissions this CLI will actually use/i);
-    assert.match(output, /Redirect URIs: copy this exact URL on its own line/);
-    assert.match(output, /You do not need to paste the redirect URI back into this CLI unless you want to override it/);
+    assert.match(output, /not-manage.*setup/);
+    assert.match(output, /Connect this CLI to your Clio developer app/);
+    assert.match(output, /Output may contain confidential client data/);
+    assert.match(output, /Redaction .* is best-effort\. Review all output before sharing/);
     assert.ok(output.includes(REGIONS.ca.developerPortalUrl));
-    assert.match(output, /If you already have a Clio developer app in this region, you can use it/);
-    assert.match(output, /Opened the Canada Clio developer portal in your browser/);
+    assert.match(output, /Opened Canada developer portal in your browser/);
     assert.match(output, /In the developer portal:/);
-    assert.match(output, /First:/);
-    assert.match(output, /Sign in, then open the Clio developer app you want this CLI to use/);
-    assert.match(output, /Use an existing app in this region, or create a new one/);
-    assert.match(output, /Permissions:/);
-    assert.match(output, /Select only the Clio Manage permissions \(OAuth scopes\) this CLI should access/);
-    assert.match(output, /Register this exact URL in your Clio developer app/);
-    assert.match(output, /Then:/);
-    assert.match(output, /Copy the App Key and App Secret from that same app back here/);
+    assert.match(output, /Open or create a Clio developer app/);
+    assert.match(output, /Set permissions \(scopes\) for this CLI/);
+    assert.match(output, /Add this redirect URI/);
+    assert.match(output, /Copy the App Key and App Secret back here/);
     assert.ok(output.includes(DEFAULT_REDIRECT_URI));
+    assert.match(output, /Saved to keychain/);
     assert.deepStrictEqual(authHarness.openCalls, [REGIONS.ca.developerPortalUrl]);
     assert.deepStrictEqual(
       authHarness.promptLabels.map((entry) => entry.label),
       [
         "Type yes to confirm you will review output before sharing it outside your firm",
         "Region",
-        "Press Enter to open the developer portal now, or type skip to continue here",
-        "App Key / Client ID (from your Clio developer app)",
-        "App Secret / Client Secret (from the same Clio app)",
-        "Custom redirect URI override (optional; press Enter to keep the default)",
+        "Press Enter to open the developer portal, or type skip",
+        "App Key / Client ID",
+        "App Secret / Client Secret",
+        "Custom redirect URI (Enter to keep default)",
       ]
     );
     assert.deepStrictEqual(authHarness.savedConfig, {
@@ -808,17 +794,17 @@ test("authSetup does not open the browser when the user types skip", async () =>
       return "ca";
     }
     if (
-      label === "Press Enter to open the developer portal now, or type skip to continue here"
+      label === "Press Enter to open the developer portal, or type skip"
     ) {
       return "skip";
     }
-    if (label === "App Key / Client ID (from your Clio developer app)") {
+    if (label === "App Key / Client ID") {
       return "client-id";
     }
-    if (label === "App Secret / Client Secret (from the same Clio app)") {
+    if (label === "App Secret / Client Secret") {
       return "client-secret";
     }
-    if (label === "Custom redirect URI override (optional; press Enter to keep the default)") {
+    if (label === "Custom redirect URI (Enter to keep default)") {
       return "";
     }
     throw new Error(`Unexpected prompt label: ${label}`);
@@ -921,17 +907,17 @@ test("setupWizard passes the config it just saved into authLogin", async () => {
           return fallback;
         }
         if (
-          label === "Press Enter to open the developer portal now, or type skip to continue here"
+          label === "Press Enter to open the developer portal, or type skip"
         ) {
           return "skip";
         }
-        if (label === "App Key / Client ID (from your Clio developer app)") {
+        if (label === "App Key / Client ID") {
           return savedConfig.clientId;
         }
-        if (label === "App Secret / Client Secret (from the same Clio app)") {
+        if (label === "App Secret / Client Secret") {
           return savedConfig.clientSecret;
         }
-        if (label === "Custom redirect URI override (optional; press Enter to keep the default)") {
+        if (label === "Custom redirect URI (Enter to keep default)") {
           return "";
         }
         throw new Error(`Unexpected prompt label: ${label}`);
