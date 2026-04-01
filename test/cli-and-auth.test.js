@@ -132,6 +132,12 @@ function loadAuthSetupTest(askImpl) {
         promptLabels.push({ fallback: null, label });
         return askImpl(label, null);
       },
+      selectOption: async (_rl, label, options, defaultIndex) => {
+        promptLabels.push({ fallback: options[defaultIndex].value, label });
+        return askImpl(label, options[defaultIndex].value);
+      },
+      bold: (text) => text,
+      dim: (text) => text,
     },
     "./store": {
       clearTokenSet: async () => {
@@ -212,6 +218,11 @@ function loadAuthModule(options = {}) {
         }
         return null;
       },
+      selectOption: async (_rl, _label, options, defaultIndex) => {
+        return options[defaultIndex].value;
+      },
+      bold: (text) => text,
+      dim: (text) => text,
       withPrompt: async (callback) => callback({}),
       ...Object.fromEntries(
         Object.entries(promptOverrides).filter(
@@ -719,8 +730,8 @@ test("cli prints help when no args are provided and onboarding is not needed", a
 
 test("authSetup opens the selected regional developer portal only after Enter", async () => {
   const authHarness = loadAuthSetupTest((label, fallback) => {
-    if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
-      return "yes";
+    if (label === "Press Enter to confirm, or type no to abort") {
+      return fallback;
     }
     if (label === "Region") {
       return "ca";
@@ -748,7 +759,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     );
     const output = logs.join("\n");
 
-    assert.match(output, /not-manage.*setup/);
+    assert.match(output, /not-manage setup/);
     assert.match(output, /Connect this CLI to your Clio developer app/);
     assert.match(output, /Output may contain confidential client data/);
     assert.match(output, /Redaction .* is best-effort\. Review all output before sharing/);
@@ -765,7 +776,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
     assert.deepStrictEqual(
       authHarness.promptLabels.map((entry) => entry.label),
       [
-        "Type yes to confirm you will review output before sharing it outside your firm",
+        "Press Enter to confirm, or type no to abort",
         "Region",
         "Press Enter to open the developer portal, or type skip",
         "App Key / Client ID",
@@ -787,8 +798,8 @@ test("authSetup opens the selected regional developer portal only after Enter", 
 
 test("authSetup does not open the browser when the user types skip", async () => {
   const authHarness = loadAuthSetupTest((label, fallback) => {
-    if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
-      return "yes";
+    if (label === "Press Enter to confirm, or type no to abort") {
+      return fallback;
     }
     if (label === "Region") {
       return "ca";
@@ -825,7 +836,7 @@ test("authSetup does not open the browser when the user types skip", async () =>
 
 test("authSetup aborts when the confidentiality acknowledgment is declined", async () => {
   const authHarness = loadAuthSetupTest((label) => {
-    if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
+    if (label === "Press Enter to confirm, or type no to abort") {
       return "no";
     }
     throw new Error(`Unexpected prompt label: ${label}`);
@@ -900,8 +911,8 @@ test("setupWizard passes the config it just saved into authLogin", async () => {
     },
     promptOverrides: {
       ask: async (_rl, label, fallback) => {
-        if (label === "Type yes to confirm you will review output before sharing it outside your firm") {
-          return "yes";
+        if (label === "Press Enter to confirm, or type no to abort") {
+          return fallback;
         }
         if (label === "Region") {
           return fallback;

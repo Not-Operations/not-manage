@@ -17,7 +17,7 @@ const {
 } = require("./clio-api");
 const { openBrowser } = require("./open-browser");
 const { waitForOAuthCallback } = require("./oauth-callback");
-const { ask, askSecret, withPrompt } = require("./prompt");
+const { ask, askSecret, bold, dim, selectOption, withPrompt } = require("./prompt");
 const {
   clearTokenSet,
   findConfig,
@@ -171,9 +171,8 @@ function collectSecurityWarnings(config, tokenSet) {
 }
 
 function printSetupBanner() {
-  console.log("--- not-manage setup ---");
-  console.log("");
-  console.log("Connect this CLI to your Clio developer app.");
+  console.log(bold("not-manage setup"));
+  console.log(dim("Connect this CLI to your Clio developer app."));
 }
 
 async function maybeOpenDeveloperPortal(rl, region) {
@@ -197,26 +196,26 @@ async function maybeOpenDeveloperPortal(rl, region) {
 
 function printSetupLinks(region, redirectUri) {
   const regionInfo = REGIONS[region];
-  console.log("Links:");
-  console.log(`  Portal:    ${regionInfo.developerPortalUrl}`);
-  console.log(`  Guides:    ${CLIO_DEVELOPER_ACCOUNT_GUIDE_URL}`);
-  console.log(`             ${CLIO_APP_CREATION_GUIDE_URL}`);
-  console.log(`             ${CLIO_AUTHORIZATION_GUIDE_URL}`);
-  console.log(`  Redirect:  ${redirectUri}`);
+  console.log(bold("Links"));
+  console.log(`  Portal     ${dim(regionInfo.developerPortalUrl)}`);
+  console.log(`  Guides     ${dim(CLIO_DEVELOPER_ACCOUNT_GUIDE_URL)}`);
+  console.log(`             ${dim(CLIO_APP_CREATION_GUIDE_URL)}`);
+  console.log(`             ${dim(CLIO_AUTHORIZATION_GUIDE_URL)}`);
+  console.log(`  Redirect   ${redirectUri}`);
 }
 
 function printPortalSteps(redirectUri) {
-  console.log("In the developer portal:");
+  console.log(bold("In the developer portal:"));
   console.log("  1. Open or create a Clio developer app");
   console.log("  2. Set permissions (scopes) for this CLI");
   console.log("  3. Add this redirect URI:");
-  console.log(`     ${redirectUri}`);
+  console.log(`     ${bold(redirectUri)}`);
   console.log("  4. Copy the App Key and App Secret back here");
 }
 
 function printConfidentialityNotice() {
-  console.log("Output may contain confidential client data.");
-  console.log("Redaction (--redacted) is best-effort. Review all output before sharing.");
+  console.log(dim("Output may contain confidential client data."));
+  console.log(dim("Redaction (--redacted) is best-effort. Review all output before sharing."));
 }
 
 function printSetupIntro() {
@@ -229,13 +228,14 @@ async function confirmConfidentialityNotice(rl) {
   const answer = String(
     await ask(
       rl,
-      "Type yes to confirm you will review output before sharing it outside your firm"
+      "Press Enter to confirm, or type no to abort",
+      "yes"
     )
   )
     .trim()
     .toLowerCase();
 
-  if (answer !== "yes") {
+  if (answer === "no") {
     throw new Error(
       "Setup aborted. Review your confidentiality and client-sharing requirements, then rerun `not-manage auth setup`."
     );
@@ -250,18 +250,21 @@ async function authSetup(options = {}) {
     await confirmConfidentialityNotice(rl);
 
     console.log("");
-    console.log("Regions: " + Object.values(REGIONS).map((r) => `${r.code} (${r.label})`).join(", "));
-    const regionRaw = await ask(rl, "Region", DEFAULT_REGION);
-    const region = normalizeRegion(regionRaw);
+    const regionOptions = Object.values(REGIONS).map((r) => ({
+      label: `${r.label} ${dim(`(${r.host})`)}`,
+      value: r.code,
+    }));
+    const defaultRegionIndex = regionOptions.findIndex((o) => o.value === DEFAULT_REGION);
+    const region = await selectOption(rl, "Region", regionOptions, defaultRegionIndex);
     const regionInfo = REGIONS[region];
-
-    console.log("");
-    console.log(`Using ${regionInfo.label} (${regionInfo.host}).`);
-    await maybeOpenDeveloperPortal(rl, region);
 
     console.log("");
     printPortalSteps(DEFAULT_REDIRECT_URI);
     console.log("");
+    await maybeOpenDeveloperPortal(rl, region);
+
+    console.log("");
+    console.log(dim(`Using ${regionInfo.label} (${regionInfo.host}).`));
 
     const clientId = await ask(rl, "App Key / Client ID");
     if (!clientId) {
@@ -290,8 +293,8 @@ async function authSetup(options = {}) {
   await clearTokenSet();
 
   console.log("");
-  console.log("Saved to keychain.");
-  console.log(`Region: ${saved.region} (${REGIONS[saved.region].label})`);
+  console.log(bold("Saved to keychain."));
+  console.log(dim(`Region: ${saved.region} (${REGIONS[saved.region].label})`));
   console.log("");
   printSetupLinks(saved.region, saved.redirectUri);
 
