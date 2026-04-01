@@ -228,8 +228,7 @@ async function confirmConfidentialityNotice(rl) {
   const answer = String(
     await ask(
       rl,
-      "Press Enter to confirm, or type no to abort",
-      "yes"
+      "Press Enter to confirm, or type no to abort"
     )
   )
     .trim()

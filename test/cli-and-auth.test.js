@@ -731,7 +731,7 @@ test("cli prints help when no args are provided and onboarding is not needed", a
 test("authSetup opens the selected regional developer portal only after Enter", async () => {
   const authHarness = loadAuthSetupTest((label, fallback) => {
     if (label === "Press Enter to confirm, or type no to abort") {
-      return fallback;
+      return "";
     }
     if (label === "Region") {
       return "ca";
@@ -799,7 +799,7 @@ test("authSetup opens the selected regional developer portal only after Enter", 
 test("authSetup does not open the browser when the user types skip", async () => {
   const authHarness = loadAuthSetupTest((label, fallback) => {
     if (label === "Press Enter to confirm, or type no to abort") {
-      return fallback;
+      return "";
     }
     if (label === "Region") {
       return "ca";
