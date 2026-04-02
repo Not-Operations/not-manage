@@ -71,6 +71,7 @@ const NAME_HEURISTIC_EXCLUDED_TOKENS = new Set([
 ]);
 
 const PLACEHOLDERS = {
+  creditCard: "[REDACTED_CREDIT_CARD]",
   email: "[REDACTED_EMAIL]",
   name: "[REDACTED_NAME]",
   phone: "[REDACTED_PHONE]",
@@ -78,6 +79,11 @@ const PLACEHOLDERS = {
   taxId: "[REDACTED_TAX_ID]",
 };
 const PERSON_NAME_SUFFIXES = new Set(["esq", "ii", "iii", "iv", "jr", "sr"]);
+const COMPANY_NOISE_TOKENS = new Set([
+  "and", "co", "company", "corp", "corporation", "dba", "group",
+  "inc", "incorporated", "limited", "llc", "llp", "lp", "ltd",
+  "of", "pa", "pc", "plc", "pllc", "the",
+]);
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -116,12 +122,18 @@ function collectContactLikeReplacements(node, replacements, dedupe) {
 
   pushReplacement(replacements, dedupe, node.name, PLACEHOLDERS.name);
 
-  const fullName = [node.first_name, node.last_name]
-    .map((value) => normalizeString(value))
-    .filter(Boolean)
-    .join(" ")
-    .trim();
+  const firstName = normalizeString(node.first_name);
+  const lastName = normalizeString(node.last_name);
+
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   pushReplacement(replacements, dedupe, fullName, PLACEHOLDERS.name);
+
+  if (lastName && lastName.length >= 2) {
+    pushReplacement(replacements, dedupe, lastName, PLACEHOLDERS.name);
+  }
+  if (firstName && firstName.length >= 2) {
+    pushReplacement(replacements, dedupe, firstName, PLACEHOLDERS.name);
+  }
 
   EMAIL_FIELDS.forEach((field) => {
     pushReplacement(replacements, dedupe, node[field], PLACEHOLDERS.email);
@@ -220,11 +232,15 @@ function collectSafeIdentityNames(
   return preserved;
 }
 
-function derivePersonSurname(name) {
-  const tokens = normalizeString(name)
-    .split(/\s+/)
+function tokenizeName(name, separator = /\s+/) {
+  return normalizeString(name)
+    .split(separator)
     .map((token) => token.replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, ""))
     .filter(Boolean);
+}
+
+function derivePersonSurname(name) {
+  const tokens = tokenizeName(name);
 
   if (tokens.length < 2) {
     return "";
@@ -238,7 +254,15 @@ function derivePersonSurname(name) {
   return index > 0 ? tokens[index] : "";
 }
 
-function collectPersonClientLabelReplacements(
+function deriveCompanyNameTokens(name) {
+  return tokenizeName(name, /[\s&,]+/).filter(
+    (token) =>
+      token.length >= 3 &&
+      !COMPANY_NOISE_TOKENS.has(token.toLowerCase())
+  );
+}
+
+function collectClientLabelReplacements(
   value,
   policy,
   clientContext = false,
@@ -247,7 +271,7 @@ function collectPersonClientLabelReplacements(
 ) {
   if (Array.isArray(value)) {
     value.forEach((item) => {
-      collectPersonClientLabelReplacements(
+      collectClientLabelReplacements(
         item,
         policy,
         clientContext,
@@ -271,8 +295,14 @@ function collectPersonClientLabelReplacements(
     );
   }
 
+  if (clientContext && value.type === "Company") {
+    deriveCompanyNameTokens(value.name).forEach((token) => {
+      pushReplacement(replacements, dedupe, token, PLACEHOLDERS.name);
+    });
+  }
+
   Object.entries(value).forEach(([key, child]) => {
-    collectPersonClientLabelReplacements(
+    collectClientLabelReplacements(
       child,
       policy,
       clientContext || policy.clientObjectKeys.has(key),
@@ -284,14 +314,19 @@ function collectPersonClientLabelReplacements(
   return replacements;
 }
 
-function replaceKnownSensitiveValues(text, replacements) {
+function applyReplacements(text, replacements, wordBoundary = false) {
   return replacements
     .slice()
     .sort((left, right) => right.value.length - left.value.length)
     .reduce((output, replacement) => {
-      const matcher = new RegExp(escapeRegExp(replacement.value), "gi");
-      return output.replace(matcher, replacement.placeholder);
-    }, text);
+      const escaped = escapeRegExp(replacement.value);
+      const pattern = wordBoundary ? `\\b${escaped}\\b` : escaped;
+      return output.replace(new RegExp(pattern, "gi"), replacement.placeholder);
+    }, String(text));
+}
+
+function replaceKnownSensitiveValues(text, replacements) {
+  return applyReplacements(text, replacements);
 }
 
 function redactPatternPii(text) {
@@ -304,8 +339,16 @@ function redactPatternPii(text) {
     /\b(?:\+?1[-.\s]*)?(?:\(\d{3}\)|\d{3})[-.\s]*\d{3}[-.\s]*\d{4}\b/g,
     PLACEHOLDERS.phone
   );
-  output = output.replace(/\b\d{3}-\d{2}-\d{4}\b/g, PLACEHOLDERS.ssn);
+  output = output.replace(/\b\d{3}[-\s]\d{2}[-\s]\d{4}\b/g, PLACEHOLDERS.ssn);
   output = output.replace(/\b\d{2}-\d{7}\b/g, PLACEHOLDERS.taxId);
+  output = output.replace(
+    /\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g,
+    PLACEHOLDERS.creditCard
+  );
+  output = output.replace(
+    /\b3[47]\d{2}[-\s]?\d{6}[-\s]?\d{5}\b/g,
+    PLACEHOLDERS.creditCard
+  );
 
   return output;
 }
@@ -387,13 +430,7 @@ function redactLikelyBareNames(text, preservedNames) {
 }
 
 function replaceMatterLabelDerivedNames(text, replacements) {
-  return replacements
-    .slice()
-    .sort((left, right) => right.value.length - left.value.length)
-    .reduce((output, replacement) => {
-      const matcher = new RegExp(`\\b${escapeRegExp(replacement.value)}\\b`, "gi");
-      return output.replace(matcher, replacement.placeholder);
-    }, String(text));
+  return applyReplacements(text, replacements, true);
 }
 
 function isMatterLabelContext(policy, path, key) {
@@ -516,7 +553,7 @@ function redactValue(
 function redactPayload(value, resourceType) {
   const policy = getRedactionPolicy(resourceType);
   const replacements = collectSensitiveReplacements(value, resourceType);
-  const derivedLabelReplacements = collectPersonClientLabelReplacements(value, policy);
+  const derivedLabelReplacements = collectClientLabelReplacements(value, policy);
   const preservedNames = collectSafeIdentityNames(
     value,
     policy,
@@ -557,7 +594,7 @@ module.exports = {
   maybeRedactData,
   maybeRedactPayload,
   __private: {
-    collectPersonClientLabelReplacements,
+    collectClientLabelReplacements,
     collectSafeIdentityNames,
     derivePersonSurname,
     redactLikelyBareNames,

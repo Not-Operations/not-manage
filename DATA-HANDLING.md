@@ -14,6 +14,14 @@ This CLI is intended to minimize data movement, not eliminate risk.
 - Redaction reduces risk but is best-effort only.
 - Raw output can still expose names, matter labels, captions, custom fields, or other identifying details.
 
+### Redaction layers
+
+1. **Structured field replacement**: contact-like resource fields (names, emails, phone numbers) are replaced with placeholders. Individual first and last name parts are also collected so lone occurrences in free text are caught.
+2. **Pattern-based PII detection**: emails, phone numbers, SSNs (dash and space-separated), tax IDs, and credit card numbers (16-digit and Amex 15-digit) are detected and replaced in all string fields.
+3. **Client-derived label replacement**: person client surnames and significant tokens from company client names are extracted and used to redact matter numbers, file names, summaries, and other label fields.
+4. **Heuristic bare-name detection**: capitalized 2-3 word sequences resembling person names are redacted in free-text and label fields, excluding known staff identities and common legal terms.
+5. **Error message sanitization**: API error messages strip URL query parameters to prevent leaking PII that may appear in request URLs.
+
 ## Storage
 
 - App credentials and OAuth tokens are stored in the OS keychain.

@@ -1,8 +1,24 @@
 const { saveTokenSet } = require("./store");
 
+function sanitizeUrlForError(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.search) {
+      return `${parsed.origin}${parsed.pathname}?[query redacted]`;
+    }
+    return `${parsed.origin}${parsed.pathname}`;
+  } catch (_error) {
+    return "[invalid URL]";
+  }
+}
+
 function createError(message, responseText) {
+  const sanitizedMessage = message.replace(
+    /https?:\/\/\S+/g,
+    (match) => sanitizeUrlForError(match)
+  );
   const suffix = responseText ? ` ${responseText}` : "";
-  return new Error(`${message}.${suffix}`.trim());
+  return new Error(`${sanitizedMessage}.${suffix}`.trim());
 }
 
 function isPlainObject(value) {
@@ -412,5 +428,6 @@ module.exports = {
   __private: {
     buildUrlWithQuery,
     parseTrustedApiUrl,
+    sanitizeUrlForError,
   },
 };

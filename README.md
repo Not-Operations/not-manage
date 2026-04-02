@@ -218,8 +218,14 @@ not-manage matter get 456 --redacted
 - Supported data commands are redacted by default.
 - Add `--unredacted` to show raw output.
 - `--redacted` is still accepted for compatibility.
-- The first version redacts client/contact names, emails, phone numbers, and common PII patterns that appear inside free-text fields such as matter descriptions, activity notes, bill memos, and bill subjects.
+- Redaction covers:
+  - client/contact names (full names, individual first and last names), emails, and phone numbers from structured fields
+  - pattern-based detection of emails, phone numbers, SSNs (dash and space-separated), tax IDs, and credit card numbers (standard 16-digit and American Express 15-digit formats) in all string fields
+  - person client surnames derived from matter labels and used to redact matter numbers, file names, and summaries
+  - significant tokens from company client names (filtering out noise like LLC, Inc, Corp) used to redact matter labels
+  - heuristic detection of bare 2-3 word person names in free-text and label fields
 - Internal staff fields such as `user`, `responsible_attorney`, `responsible_staff`, and `originating_attorney` remain visible.
+- API error messages sanitize URLs to prevent leaking query parameters that may contain PII.
 - Redaction is best-effort only. Review output before sharing it outside your firm or with any AI or third-party service.
 - High-risk commands such as contacts, matters, activities, bills, invoices, tasks, and billable client or matter views emit additional review warnings.
 - `--unredacted` on those high-risk commands emits a stronger warning because raw output may include client-identifying, confidential, or privileged information.
