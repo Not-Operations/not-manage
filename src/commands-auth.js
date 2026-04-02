@@ -17,14 +17,14 @@ const {
 } = require("./clio-api");
 const { openBrowser } = require("./open-browser");
 const { waitForOAuthCallback } = require("./oauth-callback");
-const { ask, askSecret, withPrompt } = require("./prompt");
+const { ask, askSecret, bold, dim, selectOption, withPrompt } = require("./prompt");
 const {
   clearTokenSet,
   findConfig,
   getConfig,
   getTokenSet,
   normalizeRegion,
-  parseRedirectUri,
+
   saveConfig,
   saveTokenSet,
 } = require("./store");
@@ -171,25 +171,13 @@ function collectSecurityWarnings(config, tokenSet) {
 }
 
 function printSetupBanner() {
-  console.log("+===========================================+");
-  console.log("|            WELCOME TO NOT MANAGE          |");
-  console.log("+===========================================+");
-  console.log("|      Local OAuth setup for this CLI       |");
-  console.log("+===========================================+");
-}
-
-function printSetupSteps() {
-  console.log("Setup flow:");
-  console.log("  [1] Choose your Clio region");
-  console.log("  [2] Open the Clio developer portal for that region and sign in");
-  console.log("  [3] Open your Clio developer app, or create one if you do not have one yet");
-  console.log("  [4] Choose the Clio Manage permissions this CLI should access");
-  console.log("  [5] Add the local callback URL to Redirect URIs, then copy the App Key and App Secret back here");
+  console.log(bold("not-manage setup"));
+  console.log(dim("Connect not-manage to your Clio account so you can get your Clio data into an AI."));
 }
 
 async function maybeOpenDeveloperPortal(rl, region) {
   const regionInfo = REGIONS[region];
-  const promptLabel = "Press Enter to open the developer portal now, or type skip to continue here";
+  const promptLabel = "Press Enter to open the developer portal, or type skip";
   const answer = String(await ask(rl, promptLabel, "")).trim().toLowerCase();
 
   if (answer === "skip") {
@@ -199,99 +187,54 @@ async function maybeOpenDeveloperPortal(rl, region) {
 
   try {
     await openBrowser(regionInfo.developerPortalUrl);
-    console.log(`Opened the ${regionInfo.label} Clio developer portal in your browser.`);
+    console.log(`Opened ${regionInfo.label} developer portal in your browser.`);
   } catch (_error) {
-    console.log("Could not open the Clio developer portal automatically.");
+    console.log("Could not open browser automatically.");
     console.log(`Open this URL manually: ${regionInfo.developerPortalUrl}`);
   }
 }
 
 function printSetupLinks(region, redirectUri) {
   const regionInfo = REGIONS[region];
-  console.log("Clio setup links:");
-  console.log(`- Developer portal: ${regionInfo.developerPortalUrl}`);
-  console.log(`- Developer account guide: ${CLIO_DEVELOPER_ACCOUNT_GUIDE_URL}`);
-  console.log(`- App creation guide: ${CLIO_APP_CREATION_GUIDE_URL}`);
-  console.log(`- Authorization guide: ${CLIO_AUTHORIZATION_GUIDE_URL}`);
-  console.log(`- Add this redirect URI in your Clio app: ${redirectUri}`);
+  console.log(bold("Links"));
+  console.log(`  Portal     ${dim(regionInfo.developerPortalUrl)}`);
+  console.log(`  Guides     ${dim(CLIO_DEVELOPER_ACCOUNT_GUIDE_URL)}`);
+  console.log(`             ${dim(CLIO_APP_CREATION_GUIDE_URL)}`);
+  console.log(`             ${dim(CLIO_AUTHORIZATION_GUIDE_URL)}`);
+  console.log(`  Redirect   ${redirectUri}`);
 }
 
-function printClioAppFieldGuide(redirectUri) {
-  console.log("Clio app form guide:");
-  console.log("");
-  console.log("  Required:");
-  console.log("  - Website URL: use your firm website, company site, or GitHub repo.");
-  console.log("  - Do not put the local callback URL in Website URL.");
-  console.log("  - Clio Manage permissions / scopes: select only the permissions this CLI will actually use.");
-  console.log("  - Redirect URIs: copy this exact URL on its own line:");
-  console.log(`    ${redirectUri}`);
-  console.log("");
-  console.log("  Optional:");
-  console.log("  - Support URL and Deauthorization callback URL can stay blank unless you already use them.");
-}
-
-function printDeveloperPortalReminder(redirectUri) {
-  console.log("In the developer portal:");
-  console.log("");
-  console.log("  First:");
-  console.log("  - Sign in, then open the Clio developer app you want this CLI to use.");
-  console.log("  - Use an existing app in this region, or create a new one.");
-  console.log("");
-  console.log("  Permissions:");
-  console.log("  - Select only the Clio Manage permissions (OAuth scopes) this CLI should access.");
-  console.log("");
-  console.log("  Redirect URI:");
-  console.log("  - Register this exact URL in your Clio developer app:");
-  console.log(`    ${redirectUri}`);
-  console.log("");
-  console.log("  Then:");
-  console.log("  - Copy the App Key and App Secret from that same app back here.");
+function printPortalSteps(redirectUri) {
+  console.log(bold("In the developer portal:"));
+  console.log("  1. Open or create a Clio developer app");
+  console.log("  2. Set permissions (scopes) for this CLI");
+  console.log("  3. Add this redirect URI:");
+  console.log(`     ${bold(redirectUri)}`);
+  console.log("  4. Copy the App Key and App Secret back here");
 }
 
 function printConfidentialityNotice() {
-  console.log("Confidentiality notice:");
-  console.log("  not-manage can display client-identifying, confidential, or privileged matter data.");
-  console.log("  `--redacted` is best-effort only and may miss identifiers in labels, custom fields, or free text.");
-  console.log("  Review all output before sharing it with AI tools, tickets, chats, or other third parties.");
-  console.log("  Use only with workflows and vendors your firm has approved.");
+  console.log(dim("Output may contain confidential client data."));
+  console.log(dim("Redaction (--redacted) is best-effort. Review all output before sharing."));
 }
 
-function printSetupIntro(redirectUri) {
+function printSetupIntro() {
   printSetupBanner();
   console.log("");
-  console.log("This setup is for developers who are connecting the CLI to their own Clio app.");
-  console.log("If this is your first time doing that, this guide will walk you through it.");
-  console.log("");
   printConfidentialityNotice();
-  console.log("");
-  printSetupSteps();
-  console.log("");
-  console.log("Useful links:");
-  console.log(`- Developer account guide: ${CLIO_DEVELOPER_ACCOUNT_GUIDE_URL}`);
-  console.log(`- App creation guide: ${CLIO_APP_CREATION_GUIDE_URL}`);
-  console.log(`- OAuth guide: ${CLIO_AUTHORIZATION_GUIDE_URL}`);
-  console.log("");
-  printClioAppFieldGuide(redirectUri);
-  console.log("");
-  console.log("You do not need to paste the redirect URI back into this CLI unless you want to override it.");
-  console.log("");
-  console.log("Region options:");
-  Object.values(REGIONS).forEach((region) => {
-    console.log(`- ${region.code}: ${region.label} (${region.host})`);
-  });
 }
 
 async function confirmConfidentialityNotice(rl) {
   const answer = String(
     await ask(
       rl,
-      "Type yes to confirm you will review output before sharing it outside your firm"
+      "Press Enter to confirm, or type no to abort"
     )
   )
     .trim()
     .toLowerCase();
 
-  if (answer !== "yes") {
+  if (answer === "no") {
     throw new Error(
       "Setup aborted. Review your confidentiality and client-sharing requirements, then rerun `not-manage auth setup`."
     );
@@ -299,45 +242,44 @@ async function confirmConfidentialityNotice(rl) {
 }
 
 async function authSetup(options = {}) {
-  printSetupIntro(DEFAULT_REDIRECT_URI);
+  printSetupIntro();
   console.log("");
 
   const configInput = await withPrompt(async (rl) => {
     await confirmConfidentialityNotice(rl);
-    const regionRaw = await ask(rl, "Region", DEFAULT_REGION);
-    const region = normalizeRegion(regionRaw);
+
+    console.log("");
+    const regionOptions = Object.values(REGIONS).map((r) => ({
+      label: `${r.label} ${dim(`(${r.host})`)}`,
+      value: r.code,
+    }));
+    const defaultRegionIndex = regionOptions.findIndex((o) => o.value === DEFAULT_REGION);
+    const region = await selectOption(rl, "Region", regionOptions, defaultRegionIndex);
     const regionInfo = REGIONS[region];
 
-    console.log(`Using ${regionInfo.label} (${regionInfo.host}).`);
-    console.log(`Developer portal: ${regionInfo.developerPortalUrl}`);
-    console.log("If you already have a Clio developer app in this region, you can use it.");
-    console.log("If not, create one there first, then come back here.");
+    console.log("");
+    printPortalSteps(DEFAULT_REDIRECT_URI);
+    console.log("");
     await maybeOpenDeveloperPortal(rl, region);
-    printDeveloperPortalReminder(DEFAULT_REDIRECT_URI);
 
-    const clientId = await ask(rl, "App Key / Client ID (from your Clio developer app)");
+    console.log("");
+    console.log(dim(`Using ${regionInfo.label} (${regionInfo.host}).`));
+
+    const clientId = await ask(rl, "App Key / Client ID");
     if (!clientId) {
       throw new Error("App Key / Client ID is required.");
     }
 
-    const clientSecret = await askSecret(
-      rl,
-      "App Secret / Client Secret (from the same Clio app)"
-    );
+    const clientSecret = await askSecret(rl, "App Secret / Client Secret");
     if (!clientSecret) {
       throw new Error("App Secret / Client Secret is required.");
     }
 
-    const redirectUriOverride = await ask(
-      rl,
-      "Custom redirect URI override (optional; press Enter to keep the default)"
-    );
-    const redirectUri = parseRedirectUri(redirectUriOverride || DEFAULT_REDIRECT_URI);
     return {
       region,
       clientId,
       clientSecret,
-      redirectUri,
+      redirectUri: DEFAULT_REDIRECT_URI,
     };
   });
 
@@ -345,10 +287,10 @@ async function authSetup(options = {}) {
   await clearTokenSet();
 
   console.log("");
-  console.log("Saved credentials to secure keychain.");
-  console.log(`Region: ${saved.region} (${REGIONS[saved.region].label})`);
+  console.log(bold("Your credentials have been securely saved on your local machine in the keychain."));
+  console.log(dim(`Region: ${saved.region} (${REGIONS[saved.region].label})`));
+  console.log("");
   printSetupLinks(saved.region, saved.redirectUri);
-  printClioAppFieldGuide(saved.redirectUri);
 
   if (!options.skipNextStepHint) {
     console.log("");
@@ -501,8 +443,7 @@ async function maybeRunSetupOnFirstUse() {
     return false;
   }
 
-  console.log("No Clio app credentials are configured yet.");
-  console.log("Starting guided setup...");
+  console.log("No credentials found. Starting setup...");
   console.log("");
   await setupWizard();
   return true;
