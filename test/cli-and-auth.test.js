@@ -12,6 +12,8 @@ const {
 
 function loadCli(authOverrides = {}) {
   const calls = {
+    authRevoke: [],
+    authSetup: [],
     activitiesGet: [],
     activitiesList: [],
     billsList: [],
@@ -21,20 +23,27 @@ function loadCli(authOverrides = {}) {
     mattersList: [],
     maybeRunSetupOnFirstUse: 0,
     practiceAreasList: [],
+    setupWizard: [],
     usersList: [],
   };
 
   const { module, restore } = loadWithMocks(path.join(ROOT, "src/cli.js"), {
     "./commands-auth": {
       authLogin: async () => {},
-      authRevoke: async () => {},
-      authSetup: async () => {},
+      authRevoke: async (options = {}) => {
+        calls.authRevoke.push(options);
+      },
+      authSetup: async (options = {}) => {
+        calls.authSetup.push(options);
+      },
       authStatus: async () => {},
       maybeRunSetupOnFirstUse: async () => {
         calls.maybeRunSetupOnFirstUse += 1;
         return false;
       },
-      setupWizard: async () => {},
+      setupWizard: async (options = {}) => {
+        calls.setupWizard.push(options);
+      },
       whoAmI: async () => {},
       ...authOverrides,
     },
@@ -97,6 +106,36 @@ function loadCli(authOverrides = {}) {
   });
 
   return { calls, restore, run: module.run };
+}
+
+async function withMockTty(isTTY, callback) {
+  const stdinDescriptor = Object.getOwnPropertyDescriptor(process.stdin, "isTTY");
+  const stdoutDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+
+  Object.defineProperty(process.stdin, "isTTY", {
+    configurable: true,
+    value: isTTY,
+  });
+  Object.defineProperty(process.stdout, "isTTY", {
+    configurable: true,
+    value: isTTY,
+  });
+
+  try {
+    return await callback();
+  } finally {
+    if (stdinDescriptor) {
+      Object.defineProperty(process.stdin, "isTTY", stdinDescriptor);
+    } else {
+      delete process.stdin.isTTY;
+    }
+
+    if (stdoutDescriptor) {
+      Object.defineProperty(process.stdout, "isTTY", stdoutDescriptor);
+    } else {
+      delete process.stdout.isTTY;
+    }
+  }
 }
 
 function loadAuthSetupTest(askImpl) {
@@ -688,7 +727,7 @@ test("cli routes billable client list filters", async () => {
   }
 });
 
-test("cli starts first-run onboarding when no args are provided and setup is needed", async () => {
+test("cli prints help on bare invocation and does not auto-start onboarding", async () => {
   let onboardingCalls = 0;
   const { restore, run } = loadCli({
     maybeRunSetupOnFirstUse: async () => {
@@ -699,8 +738,8 @@ test("cli starts first-run onboarding when no args are provided and setup is nee
 
   try {
     const { logs } = await captureConsole(() => run([]));
-    assert.equal(onboardingCalls, 1);
-    assert.equal(logs.some((line) => line.includes("Usage:")), false);
+    assert.equal(onboardingCalls, 0);
+    assert.ok(logs.includes("Usage:"));
   } finally {
     restore();
   }
@@ -712,7 +751,7 @@ test("cli prints help when no args are provided and onboarding is not needed", a
   try {
     const { logs } = await captureConsole(() => run([]));
     const output = logs.join("\n");
-    assert.equal(calls.maybeRunSetupOnFirstUse, 1);
+    assert.equal(calls.maybeRunSetupOnFirstUse, 0);
     assert.ok(logs.includes("Usage:"));
     assert.ok(logs.includes("  not-manage <command> [options]"));
     assert.match(
@@ -723,6 +762,88 @@ test("cli prints help when no args are provided and onboarding is not needed", a
       output,
       /notes list\s+List notes with filters and pagination \(requires --type\)/
     );
+  } finally {
+    restore();
+  }
+});
+
+test("cli prints layered resource help instead of global help for subcommands", async () => {
+  const { restore, run } = loadCli();
+
+  try {
+    const { logs } = await captureConsole(() => run(["activities", "list", "--help"]));
+    const output = logs.join("\n");
+
+    assert.match(output, /not-manage activities list/);
+    assert.match(output, /Usage:\n  not-manage activities list \[options\]/);
+    assert.match(output, /Description:\n  List activities with filters and pagination/);
+    assert.match(output, /--client-id <value>/);
+    assert.match(output, /--status <value>/);
+    assert.equal(output.includes("auth setup"), false);
+  } finally {
+    restore();
+  }
+});
+
+test("cli prints layered auth setup help with automation-friendly flags", async () => {
+  const { restore, run } = loadCli();
+
+  try {
+    const { logs } = await captureConsole(() => run(["auth", "setup", "--help"]));
+    const output = logs.join("\n");
+
+    assert.match(output, /not-manage auth setup/);
+    assert.match(output, /--confirm-confidentiality/);
+    assert.match(output, /--client-id <value>/);
+    assert.match(output, /--client-secret <value>/);
+    assert.match(output, /--open-browser <true\|false>/);
+    assert.equal(output.includes("Commands:"), false);
+  } finally {
+    restore();
+  }
+});
+
+test("cli passes auth setup flags through to authSetup", async () => {
+  const { calls, restore, run } = loadCli();
+
+  try {
+    await run([
+      "auth",
+      "setup",
+      "--confirm-confidentiality",
+      "--region",
+      "ca",
+      "--client-id",
+      "client-id",
+      "--client-secret",
+      "client-secret",
+      "--redirect-uri",
+      DEFAULT_REDIRECT_URI,
+      "--open-browser",
+      "false",
+    ]);
+
+    assert.deepStrictEqual(calls.authSetup, [
+      {
+        clientId: "client-id",
+        clientSecret: "client-secret",
+        confirmConfidentiality: true,
+        openBrowser: false,
+        redirectUri: DEFAULT_REDIRECT_URI,
+        region: "ca",
+      },
+    ]);
+  } finally {
+    restore();
+  }
+});
+
+test("cli passes auth revoke safety flags through to authRevoke", async () => {
+  const { calls, restore, run } = loadCli();
+
+  try {
+    await run(["auth", "revoke", "--dry-run", "--yes"]);
+    assert.deepStrictEqual(calls.authRevoke, [{ dryRun: true, yes: true }]);
   } finally {
     restore();
   }
@@ -751,8 +872,8 @@ test("authSetup opens the selected regional developer portal only after Enter", 
   });
 
   try {
-    const { logs } = await captureConsole(() =>
-      authHarness.module.authSetup({ skipNextStepHint: true })
+    const { logs } = await withMockTty(true, () =>
+      captureConsole(() => authHarness.module.authSetup({ skipNextStepHint: true }))
     );
     const output = logs.join("\n");
 
@@ -815,8 +936,8 @@ test("authSetup does not open the browser when the user types skip", async () =>
   });
 
   try {
-    const { logs } = await captureConsole(() =>
-      authHarness.module.authSetup({ skipNextStepHint: true })
+    const { logs } = await withMockTty(true, () =>
+      captureConsole(() => authHarness.module.authSetup({ skipNextStepHint: true }))
     );
     const output = logs.join("\n");
 
@@ -836,10 +957,12 @@ test("authSetup aborts when the confidentiality acknowledgment is declined", asy
   });
 
   try {
-    await assert.rejects(
-      () => authHarness.module.authSetup({ skipNextStepHint: true }),
-      /Setup aborted\. Review your confidentiality and client-sharing requirements/
-    );
+    await withMockTty(true, async () => {
+      await assert.rejects(
+        () => authHarness.module.authSetup({ skipNextStepHint: true }),
+        /Setup aborted\. Review your confidentiality and client-sharing requirements/
+      );
+    });
     assert.deepStrictEqual(authHarness.openCalls, []);
     assert.equal(authHarness.clearedTokenSet, 0);
   } finally {
@@ -847,25 +970,125 @@ test("authSetup aborts when the confidentiality acknowledgment is declined", asy
   }
 });
 
+test("authSetup accepts a fully flag-driven path without prompting", async () => {
+  const authHarness = loadAuthSetupTest(() => {
+    throw new Error("authSetup should not prompt when all required flags are provided");
+  });
+
+  try {
+    const { logs } = await withMockTty(false, () =>
+      captureConsole(() =>
+        authHarness.module.authSetup({
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          confirmConfidentiality: true,
+          openBrowser: false,
+          redirectUri: DEFAULT_REDIRECT_URI,
+          region: "ca",
+          skipNextStepHint: true,
+        })
+      )
+    );
+    const output = logs.join("\n");
+
+    assert.match(output, /Continuing without opening the browser/);
+    assert.deepStrictEqual(authHarness.promptLabels, []);
+    assert.deepStrictEqual(authHarness.savedConfig, {
+      clientId: "client-id",
+      clientSecret: "client-secret",
+      redirectUri: DEFAULT_REDIRECT_URI,
+      region: "ca",
+    });
+  } finally {
+    authHarness.restore();
+  }
+});
+
+test("authRevoke supports dry-run without side effects", async () => {
+  let deauthorizeCalls = 0;
+  let clearTokenSetCalls = 0;
+
+  const { module, restore } = loadAuthModule({
+    clioApiOverrides: {
+      deauthorize: async () => {
+        deauthorizeCalls += 1;
+      },
+    },
+    storeOverrides: {
+      clearTokenSet: async () => {
+        clearTokenSetCalls += 1;
+      },
+      getTokenSet: async () => ({
+        accessToken: "stored-access-token",
+        source: "keychain",
+      }),
+    },
+  });
+
+  try {
+    const { logs } = await captureConsole(() => module.authRevoke({ dryRun: true }));
+    assert.match(logs.join("\n"), /Dry run: would revoke the current token in Clio/);
+    assert.equal(deauthorizeCalls, 0);
+    assert.equal(clearTokenSetCalls, 0);
+  } finally {
+    restore();
+  }
+});
+
+test("authRevoke requires explicit confirmation outside a TTY", async () => {
+  const { module, restore } = loadAuthModule({
+    storeOverrides: {
+      getTokenSet: async () => ({
+        accessToken: "stored-access-token",
+        source: "keychain",
+      }),
+    },
+  });
+
+  try {
+    await withMockTty(false, async () => {
+      await assert.rejects(
+        () => module.authRevoke(),
+        /Re-run with `--yes` to perform the revoke, or `--dry-run` to inspect what would happen/
+      );
+    });
+  } finally {
+    restore();
+  }
+});
+
 test("authLogin rewrites invalid_client errors with actionable guidance", async () => {
+  const { __private } = require("../src/clio-api");
   const { module, restore } = loadAuthModule({
     clioApiOverrides: {
       exchangeAuthorizationCode: async () => {
-        throw new Error(
-          'HTTP 401 from https://app.clio.com/oauth/token. {"error":"invalid_client","error_description":"The client identifier provided is invalid."}'
+        throw __private.createError(
+          "HTTP 401 from https://app.clio.com/oauth/token",
+          {
+            error: "invalid_client",
+            error_description: "The client identifier provided is invalid.",
+          }
         );
       },
     },
   });
 
   try {
-    await assert.rejects(
-      () => module.authLogin(),
-      /Clio rejected the app credentials during OAuth token exchange/
-    );
-
-    await assert.rejects(() => module.authLogin(), /App ID was entered instead of the App Key/);
-    await assert.rejects(() => module.authLogin(), /Redirect URI: http:\/\/127\.0\.0\.1:53123\/callback/);
+    await assert.rejects(async () => {
+      try {
+        await module.authLogin();
+      } catch (error) {
+        assert.match(
+          error.message,
+          /Clio rejected the app credentials during OAuth token exchange/
+        );
+        assert.match(error.message, /App ID was entered instead of the App Key/);
+        assert.match(error.message, /Redirect URI: http:\/\/127\.0\.0\.1:53123\/callback/);
+        assert.match(error.message, /Clio response: HTTP 401 from https:\/\/app\.clio\.com\/oauth\/token\. Clio error code: invalid_client\./);
+        assert.equal(error.message.includes("client identifier provided"), false);
+        throw error;
+      }
+    }, /invalid_client/);
   } finally {
     restore();
   }
@@ -933,7 +1156,7 @@ test("setupWizard passes the config it just saved into authLogin", async () => {
   });
 
   try {
-    await module.setupWizard();
+    await withMockTty(true, () => module.setupWizard());
     assert.deepStrictEqual(
       flow.map((entry) => entry.config),
       [savedConfig, savedConfig]

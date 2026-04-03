@@ -99,76 +99,44 @@ async function askSecret(rl, label) {
 }
 
 async function selectOption(_rl, label, options, defaultIndex = 0) {
+  if (!Array.isArray(options) || options.length === 0) {
+    throw new Error(`No options available for ${label}.`);
+  }
+
   if (!stdin.isTTY) {
     return options[defaultIndex].value;
   }
 
   console.log(bold(label));
-  const selected = await new Promise((resolve) => {
-    let index = defaultIndex;
-
-    function render() {
-      // Move cursor up to redraw options
-      if (index !== -1) {
-        stdout.write(`\x1b[${options.length}A`);
-      }
-      for (let i = 0; i < options.length; i++) {
-        const marker = i === index ? ">" : " ";
-        const line = i === index ? bold(` ${options[i].label}`) : `  ${options[i].label}`;
-        stdout.write(`\x1b[2K ${marker}${line}\n`);
-      }
-    }
-
-    // Initial render
-    index = -1;
-    for (let i = 0; i < options.length; i++) {
-      const marker = i === defaultIndex ? ">" : " ";
-      const line = i === defaultIndex ? bold(` ${options[i].label}`) : `  ${options[i].label}`;
-      stdout.write(` ${marker}${line}\n`);
-    }
-    index = defaultIndex;
-
-    stdin.setRawMode(true);
-    stdin.resume();
-
-    function onData(data) {
-      const key = data.toString();
-
-      // Up arrow: \x1b[A
-      if (key === "\x1b[A" && index > 0) {
-        index--;
-        render();
-        return;
-      }
-
-      // Down arrow: \x1b[B
-      if (key === "\x1b[B" && index < options.length - 1) {
-        index++;
-        render();
-        return;
-      }
-
-      // Enter
-      if (key === "\r" || key === "\n") {
-        stdin.removeListener("data", onData);
-        stdin.setRawMode(false);
-        stdin.pause();
-        resolve(options[index].value);
-        return;
-      }
-
-      // Ctrl+C
-      if (key === "\x03") {
-        stdin.removeListener("data", onData);
-        stdin.setRawMode(false);
-        process.exit(1);
-      }
-    }
-
-    stdin.on("data", onData);
+  options.forEach((option, index) => {
+    const marker = index === defaultIndex ? "*" : " ";
+    stdout.write(` ${marker} ${index + 1}. ${option.label}\n`);
   });
 
-  return selected;
+  const fallback = String(defaultIndex + 1);
+
+  while (true) {
+    const answer = String(await ask(_rl, "Choose an option", fallback)).trim();
+    const numericIndex = Number.parseInt(answer, 10);
+
+    if (Number.isInteger(numericIndex) && numericIndex >= 1 && numericIndex <= options.length) {
+      return options[numericIndex - 1].value;
+    }
+
+    const normalized = answer.toLowerCase();
+    const matchingOption = options.find((option) => {
+      return (
+        String(option.value).trim().toLowerCase() === normalized ||
+        String(option.label).trim().toLowerCase() === normalized
+      );
+    });
+
+    if (matchingOption) {
+      return matchingOption.value;
+    }
+
+    console.log(`Enter a number from 1 to ${options.length}, or one of the listed values.`);
+  }
 }
 
 module.exports = {

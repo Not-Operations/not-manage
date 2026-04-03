@@ -12,13 +12,95 @@ function sanitizeUrlForError(url) {
   }
 }
 
-function createError(message, responseText) {
+function toSafeErrorToken(value) {
+  const text = String(value || "").trim();
+  if (!text || !/^[a-z0-9_.:-]+$/i.test(text)) {
+    return null;
+  }
+
+  return text;
+}
+
+function extractErrorCodes(payload) {
+  if (!isPlainObject(payload)) {
+    return [];
+  }
+
+  const codes = [];
+
+  ["error", "code", "type", "error_code"].forEach((key) => {
+    const safeToken = toSafeErrorToken(payload[key]);
+    if (safeToken) {
+      codes.push(safeToken);
+    }
+  });
+
+  if (Array.isArray(payload.errors)) {
+    payload.errors.forEach((item) => {
+      if (!isPlainObject(item)) {
+        return;
+      }
+
+      ["error", "code", "type", "error_code"].forEach((key) => {
+        const safeToken = toSafeErrorToken(item[key]);
+        if (safeToken) {
+          codes.push(safeToken);
+        }
+      });
+    });
+  }
+
+  return [...new Set(codes)];
+}
+
+function summarizeErrorPayload(payload) {
+  if (payload === null || payload === undefined || payload === "") {
+    return "";
+  }
+
+  const errorCodes = extractErrorCodes(payload);
+  if (errorCodes.length === 1) {
+    return `Clio error code: ${errorCodes[0]}.`;
+  }
+
+  if (errorCodes.length > 1) {
+    return `Clio error codes: ${errorCodes.join(", ")}.`;
+  }
+
+  if (typeof payload === "string") {
+    return "Response body omitted.";
+  }
+
+  if (Array.isArray(payload)) {
+    const noun = payload.length === 1 ? "item" : "items";
+    return `Clio returned ${payload.length} error ${noun}.`;
+  }
+
+  if (isPlainObject(payload)) {
+    if (Array.isArray(payload.errors)) {
+      const count = payload.errors.length;
+      const noun = count === 1 ? "item" : "items";
+      return `Clio returned ${count} error ${noun}.`;
+    }
+
+    return "Response body omitted.";
+  }
+
+  return "";
+}
+
+function createError(message, payload) {
   const sanitizedMessage = message.replace(
     /https?:\/\/\S+/g,
     (match) => sanitizeUrlForError(match)
   );
-  const suffix = responseText ? ` ${responseText}` : "";
-  return new Error(`${sanitizedMessage}.${suffix}`.trim());
+  const summary = summarizeErrorPayload(payload);
+  const error = new Error(summary ? `${sanitizedMessage}. ${summary}` : `${sanitizedMessage}.`);
+  const [clioErrorCode] = extractErrorCodes(payload);
+  if (clioErrorCode) {
+    error.clioErrorCode = clioErrorCode;
+  }
+  return error;
 }
 
 function isPlainObject(value) {
@@ -49,7 +131,7 @@ async function postForm(url, formFields, headers = {}) {
   if (!response.ok) {
     throw createError(
       `HTTP ${response.status} from ${url}`,
-      typeof payload === "string" ? payload : JSON.stringify(payload)
+      payload
     );
   }
 
@@ -75,7 +157,7 @@ async function getJson(url, headers = {}) {
   if (!response.ok) {
     throw createError(
       `HTTP ${response.status} from ${url}`,
-      typeof payload === "string" ? payload : JSON.stringify(payload)
+      payload
     );
   }
 
@@ -107,7 +189,7 @@ async function postJson(url, body, headers = {}) {
   if (!response.ok) {
     throw createError(
       `HTTP ${response.status} from ${url}`,
-      typeof payload === "string" ? payload : JSON.stringify(payload)
+      payload
     );
   }
 
@@ -427,7 +509,10 @@ module.exports = {
   getValidAccessToken,
   __private: {
     buildUrlWithQuery,
+    createError,
+    extractErrorCodes,
     parseTrustedApiUrl,
     sanitizeUrlForError,
+    summarizeErrorPayload,
   },
 };

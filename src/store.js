@@ -153,7 +153,7 @@ async function getStoredTokenSet() {
     };
   } catch (_error) {
     throw new Error(
-      "Stored token data is invalid. Run `not-manage auth revoke` then `not-manage auth login`."
+      "Stored token data is invalid. Run `not-manage auth revoke --yes` then `not-manage auth login`."
     );
   }
 }

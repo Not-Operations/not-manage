@@ -24,6 +24,7 @@ const {
   getConfig,
   getTokenSet,
   normalizeRegion,
+  parseRedirectUri,
 
   saveConfig,
   saveTokenSet,
@@ -146,8 +147,10 @@ function formatConfigSummary(config) {
 
 function rewriteOAuthError(error, config) {
   const message = error && error.message ? error.message : String(error);
+  const clioErrorCode =
+    error && typeof error.clioErrorCode === "string" ? error.clioErrorCode : null;
 
-  if (message.includes("invalid_client")) {
+  if (clioErrorCode === "invalid_client" || message.includes("invalid_client")) {
     return new Error(
       [
         "Clio rejected the app credentials during OAuth token exchange (`invalid_client`).",
@@ -158,7 +161,7 @@ function rewriteOAuthError(error, config) {
         "- The App Key/App Secret pair does not belong to the selected Clio region.",
         "- The redirect URI registered in the Clio app does not exactly match the value above.",
         "Run `not-manage auth setup` again and copy the App Key and App Secret from the same Clio developer app.",
-        `Original error: ${message}`,
+        `Clio response: ${message}`,
       ].join("\n")
     );
   }
@@ -173,25 +176,6 @@ function collectSecurityWarnings(config, tokenSet) {
 function printSetupBanner() {
   console.log(bold("not-manage setup"));
   console.log(dim("Connect not-manage to your Clio account so you can get your Clio data into an AI."));
-}
-
-async function maybeOpenDeveloperPortal(rl, region) {
-  const regionInfo = REGIONS[region];
-  const promptLabel = "Press Enter to open the developer portal, or type skip";
-  const answer = String(await ask(rl, promptLabel, "")).trim().toLowerCase();
-
-  if (answer === "skip") {
-    console.log("Continuing without opening the browser.");
-    return;
-  }
-
-  try {
-    await openBrowser(regionInfo.developerPortalUrl);
-    console.log(`Opened ${regionInfo.label} developer portal in your browser.`);
-  } catch (_error) {
-    console.log("Could not open browser automatically.");
-    console.log(`Open this URL manually: ${regionInfo.developerPortalUrl}`);
-  }
 }
 
 function printSetupLinks(region, redirectUri) {
@@ -224,6 +208,181 @@ function printSetupIntro() {
   printConfidentialityNotice();
 }
 
+function normalizeOptionalText(value) {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const text = String(value).trim();
+  return text || undefined;
+}
+
+function buildAuthSetupUsage() {
+  return [
+    "Usage: not-manage auth setup --confirm-confidentiality --client-id <value> --client-secret <value> [--region <code>] [--redirect-uri <url>] [--open-browser true|false]",
+    "Run `not-manage auth setup --help` for command details.",
+  ].join("\n");
+}
+
+function requireInteractiveSetupFlag(flagName, details) {
+  const prefix = `\`${flagName}\` is required outside an interactive terminal.`;
+  return new Error(details ? `${prefix}\n${details}` : prefix);
+}
+
+function buildRegionOptions() {
+  return Object.values(REGIONS).map((region) => ({
+    label: `${region.code} - ${region.label} ${dim(`(${region.host})`)}`,
+    value: region.code,
+  }));
+}
+
+function normalizeSetupOptions(options = {}) {
+  const region = normalizeOptionalText(options.region);
+  const redirectUri = normalizeOptionalText(options.redirectUri);
+
+  return {
+    clientId: normalizeOptionalText(options.clientId),
+    clientSecret: normalizeOptionalText(options.clientSecret),
+    confirmConfidentiality: options.confirmConfidentiality === true,
+    openBrowser: typeof options.openBrowser === "boolean" ? options.openBrowser : undefined,
+    redirectUri: redirectUri ? parseRedirectUri(redirectUri) : DEFAULT_REDIRECT_URI,
+    region: region ? normalizeRegion(region) : undefined,
+  };
+}
+
+function buildMissingSetupOptionsError(missingFlags) {
+  return new Error(
+    [
+      `Missing required setup options: ${missingFlags.join(", ")}.`,
+      buildAuthSetupUsage(),
+    ].join("\n")
+  );
+}
+
+function buildMissingRevokeConfirmationError() {
+  return new Error(
+    [
+      "`not-manage auth revoke` needs confirmation before it clears tokens.",
+      "Re-run with `--yes` to perform the revoke, or `--dry-run` to inspect what would happen.",
+    ].join("\n")
+  );
+}
+
+async function ensureConfidentialityNoticeAcknowledged(rl, options) {
+  if (options.confirmConfidentiality) {
+    return;
+  }
+
+  if (!rl) {
+    throw requireInteractiveSetupFlag("--confirm-confidentiality", buildAuthSetupUsage());
+  }
+
+  await confirmConfidentialityNotice(rl);
+}
+
+async function resolveSetupClientId(rl, options) {
+  if (options.clientId) {
+    return options.clientId;
+  }
+
+  if (!rl) {
+    throw buildMissingSetupOptionsError(["--client-id"]);
+  }
+
+  const clientId = normalizeOptionalText(await ask(rl, "App Key / Client ID"));
+  if (!clientId) {
+    throw new Error("App Key / Client ID is required.");
+  }
+
+  return clientId;
+}
+
+async function resolveSetupClientSecret(rl, options) {
+  if (options.clientSecret) {
+    return options.clientSecret;
+  }
+
+  if (!rl) {
+    throw buildMissingSetupOptionsError(["--client-secret"]);
+  }
+
+  const clientSecret = normalizeOptionalText(await askSecret(rl, "App Secret / Client Secret"));
+  if (!clientSecret) {
+    throw new Error("App Secret / Client Secret is required.");
+  }
+
+  return clientSecret;
+}
+
+async function resolveSetupRegion(rl, options) {
+  if (options.region) {
+    return options.region;
+  }
+
+  if (!rl) {
+    return DEFAULT_REGION;
+  }
+
+  console.log(dim("Choose a region by number or code."));
+  const regionOptions = buildRegionOptions();
+  return selectOption(
+    rl,
+    "Region",
+    regionOptions,
+    regionOptions.findIndex((option) => option.value === DEFAULT_REGION)
+  );
+}
+
+async function maybePromptRevokeConfirmation() {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw buildMissingRevokeConfirmationError();
+  }
+
+  return withPrompt(async (rl) => {
+    const answer = String(await ask(rl, "Type revoke to continue, or press Enter to cancel", ""))
+      .trim()
+      .toLowerCase();
+
+    if (answer !== "revoke") {
+      console.log("Revoke cancelled.");
+      return false;
+    }
+
+    return true;
+  });
+}
+
+async function maybeOpenDeveloperPortal(rl, region, openBrowserPreference) {
+  if (openBrowserPreference === false) {
+    console.log("Continuing without opening the browser.");
+    return;
+  }
+
+  if (openBrowserPreference === undefined) {
+    if (!rl) {
+      return;
+    }
+
+    const promptLabel = "Press Enter to open the developer portal, or type skip";
+    const answer = String(await ask(rl, promptLabel, "")).trim().toLowerCase();
+
+    if (answer === "skip") {
+      console.log("Continuing without opening the browser.");
+      return;
+    }
+  }
+
+  const regionInfo = REGIONS[region];
+
+  try {
+    await openBrowser(regionInfo.developerPortalUrl);
+    console.log(`Opened ${regionInfo.label} developer portal in your browser.`);
+  } catch (_error) {
+    console.log("Could not open browser automatically.");
+    console.log(`Open this URL manually: ${regionInfo.developerPortalUrl}`);
+  }
+}
+
 async function confirmConfidentialityNotice(rl) {
   const answer = String(
     await ask(
@@ -245,43 +404,70 @@ async function authSetup(options = {}) {
   printSetupIntro();
   console.log("");
 
-  const configInput = await withPrompt(async (rl) => {
-    await confirmConfidentialityNotice(rl);
+  const normalizedOptions = normalizeSetupOptions(options);
+  const needsPrompt =
+    !normalizedOptions.confirmConfidentiality ||
+    !normalizedOptions.clientId ||
+    !normalizedOptions.clientSecret ||
+    normalizedOptions.openBrowser === undefined;
 
-    console.log("");
-    const regionOptions = Object.values(REGIONS).map((r) => ({
-      label: `${r.label} ${dim(`(${r.host})`)}`,
-      value: r.code,
-    }));
-    const defaultRegionIndex = regionOptions.findIndex((o) => o.value === DEFAULT_REGION);
-    const region = await selectOption(rl, "Region", regionOptions, defaultRegionIndex);
-    const regionInfo = REGIONS[region];
+  const configInput = await (needsPrompt && process.stdin.isTTY && process.stdout.isTTY
+    ? withPrompt(async (rl) => {
+        await ensureConfidentialityNoticeAcknowledged(rl, normalizedOptions);
 
-    console.log("");
-    printPortalSteps(DEFAULT_REDIRECT_URI);
-    console.log("");
-    await maybeOpenDeveloperPortal(rl, region);
+        console.log("");
+        const region = await resolveSetupRegion(rl, normalizedOptions);
+        const regionInfo = REGIONS[region];
 
-    console.log("");
-    console.log(dim(`Using ${regionInfo.label} (${regionInfo.host}).`));
+        console.log("");
+        printPortalSteps(normalizedOptions.redirectUri);
+        console.log("");
+        await maybeOpenDeveloperPortal(rl, region, normalizedOptions.openBrowser);
 
-    const clientId = await ask(rl, "App Key / Client ID");
-    if (!clientId) {
-      throw new Error("App Key / Client ID is required.");
-    }
+        console.log("");
+        console.log(dim(`Using ${regionInfo.label} (${regionInfo.host}).`));
 
-    const clientSecret = await askSecret(rl, "App Secret / Client Secret");
-    if (!clientSecret) {
-      throw new Error("App Secret / Client Secret is required.");
-    }
+        const clientId = await resolveSetupClientId(rl, normalizedOptions);
+        const clientSecret = await resolveSetupClientSecret(rl, normalizedOptions);
 
-    return {
-      region,
-      clientId,
-      clientSecret,
-      redirectUri: DEFAULT_REDIRECT_URI,
-    };
-  });
+        return {
+          region,
+          clientId,
+          clientSecret,
+          redirectUri: normalizedOptions.redirectUri,
+        };
+      })
+    : (async () => {
+        await ensureConfidentialityNoticeAcknowledged(null, normalizedOptions);
+
+        const missingFlags = [];
+        if (!normalizedOptions.clientId) {
+          missingFlags.push("--client-id");
+        }
+        if (!normalizedOptions.clientSecret) {
+          missingFlags.push("--client-secret");
+        }
+        if (missingFlags.length > 0) {
+          throw buildMissingSetupOptionsError(missingFlags);
+        }
+
+        const region = normalizedOptions.region || DEFAULT_REGION;
+        const regionInfo = REGIONS[region];
+
+        printPortalSteps(normalizedOptions.redirectUri);
+        console.log("");
+        await maybeOpenDeveloperPortal(null, region, normalizedOptions.openBrowser);
+
+        console.log("");
+        console.log(dim(`Using ${regionInfo.label} (${regionInfo.host}).`));
+
+        return {
+          region,
+          clientId: normalizedOptions.clientId,
+          clientSecret: normalizedOptions.clientSecret,
+          redirectUri: normalizedOptions.redirectUri,
+        };
+      })());
 
   const saved = await saveConfig(configInput);
   await clearTokenSet();
@@ -388,14 +574,25 @@ async function authStatus(options = {}) {
   });
 }
 
-async function authRevoke() {
-  const config = await getConfig();
+async function authRevoke(options = {}) {
   const tokenSet = await getTokenSet();
 
   if (!tokenSet || !tokenSet.accessToken) {
     console.log("No local token found. Nothing to revoke.");
     return;
   }
+
+  if (options.dryRun) {
+    console.log("Dry run: would revoke the current token in Clio and clear the local keychain token.");
+    return;
+  }
+
+  const confirmed = options.yes === true ? true : await maybePromptRevokeConfirmation();
+  if (!confirmed) {
+    return;
+  }
+
+  const config = await getConfig();
 
   try {
     const accessToken = await getValidAccessToken(config, tokenSet);
@@ -426,8 +623,8 @@ async function whoAmI(options = {}) {
   console.log(`ID: ${user.id}`);
 }
 
-async function setupWizard() {
-  const config = await authSetup({ skipNextStepHint: true });
+async function setupWizard(options = {}) {
+  const config = await authSetup({ ...options, skipNextStepHint: true });
   console.log("");
   console.log("Continuing with OAuth login...");
   await authLogin({ config });

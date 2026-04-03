@@ -2,7 +2,8 @@
 
 const { run } = require("../src/cli");
 
-run(process.argv.slice(2)).catch((_error) => {
-  console.error("Error: command failed.");
+run(process.argv.slice(2)).catch((error) => {
+  const message = error && error.message ? error.message : "Error: command failed.";
+  console.error(message);
   process.exit(1);
 });

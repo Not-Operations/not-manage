@@ -16,12 +16,12 @@ This project is a terminal CLI from [Not Operations](https://notoperations.com/l
 npm i -g not-manage && not-manage
 ```
 
-The package does not run install-time scripts. Setup starts when you launch `not-manage`.
+The package does not run install-time scripts. `not-manage` opens in help-first mode so you can inspect commands before changing local state.
 
 What happens next:
 
-- first-time setup: `not-manage` starts guided setup
-- returning setup: `not-manage` opens normally and can verify the saved connection
+- first-time setup: run `not-manage auth setup` or `not-manage setup` when you are ready
+- returning setup: `not-manage` opens command help and you can verify the saved connection explicitly
 - setup warning: the CLI reminds you that output may contain confidential client data and that redaction is best-effort only
 
 Network behavior:
@@ -60,7 +60,7 @@ node bin/not-manage.js --help
 not-manage auth setup
 ```
 
-2. Choose your Clio region in the CLI.
+2. Choose your Clio region in the CLI, or pass it directly with `--region`.
 3. When the CLI opens the Clio developer portal, sign in there.
 4. Open your Clio developer app there, or create one first if you do not have one yet.
 5. Fill out the Clio app form:
@@ -88,6 +88,12 @@ During setup, the CLI asks you to acknowledge that:
 - `--redacted` is best-effort only and may miss identifiers in labels, custom fields, or free text
 - you must review output before sharing it with AI tools or other third parties
 
+For non-interactive setup, pass the required values directly:
+
+```bash
+not-manage auth setup --confirm-confidentiality --region us --client-id <app-key> --client-secret <app-secret>
+```
+
 ## Local-only docs
 
 - [PRIVACY.md](PRIVACY.md)
@@ -110,7 +116,8 @@ not-manage auth setup
 not-manage auth login
 not-manage auth status
 not-manage whoami
-not-manage auth revoke
+not-manage auth revoke --dry-run
+not-manage auth revoke --yes
 ```
 
 ## Resource command reference

@@ -64,3 +64,33 @@ test("sanitizeUrlForError strips query parameters from URLs", () => {
     "[invalid URL]"
   );
 });
+
+test("createError omits raw string response bodies", () => {
+  const error = __private.createError(
+    "HTTP 422 from https://app.clio.com/api/v4/contacts.json?query=Smith",
+    "Validation failed for client John Smith"
+  );
+
+  assert.equal(
+    error.message,
+    "HTTP 422 from https://app.clio.com/api/v4/contacts.json?[query redacted]. Response body omitted."
+  );
+  assert.equal(error.clioErrorCode, undefined);
+});
+
+test("createError keeps safe Clio error codes without exposing descriptions", () => {
+  const error = __private.createError(
+    "HTTP 401 from https://app.clio.com/oauth/token",
+    {
+      error: "invalid_client",
+      error_description: "The client identifier provided is invalid.",
+    }
+  );
+
+  assert.equal(
+    error.message,
+    "HTTP 401 from https://app.clio.com/oauth/token. Clio error code: invalid_client."
+  );
+  assert.equal(error.clioErrorCode, "invalid_client");
+  assert.equal(error.message.includes("client identifier provided"), false);
+});
